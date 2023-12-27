@@ -1,0 +1,3 @@
+#include "util.hpp"
+// https://dl.acm.org/doi/pdf/10.1145/3071178.3071305
+// populacja - ocena - selekcja - pula rodzicielska - operacje genetyczne - subpopulacja - ocena - sukcesja - ...
