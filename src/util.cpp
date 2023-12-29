@@ -1,6 +1,7 @@
 #include "util.hpp"
 #include <iostream>
 #include <string>
+#include <numeric>
 
 void Matrix::loadFromFile(std::string fileName) {
 	int n = fileName.find(".txt");
@@ -321,6 +322,55 @@ std::tuple<std::vector<short>, int> Algorithms::generateNewSolution(Matrix* matr
 		std::find(possibleVertices.begin(), possibleVertices.end(), currentVertex)
 	);
 
+	while (possibleVertices.size()) {
+		int value = INT_MAX, lowestIndex = 0;
+		// znajdz najkrotsza mozliwa sciezke
+		for (int i = 1; i < matrixSize; i++) {
+			if (matrix->mat[i][currentVertex] < value
+				&& (std::find(possibleVertices.begin(), possibleVertices.end(), i) != std::end(possibleVertices))) {
+				value = matrix->mat[i][currentVertex];
+				lowestIndex = i;
+			}
+		}
+
+		// dodaj do generowanego rozwiazania
+		returnVector.push_back(lowestIndex);
+		returnLength += value;
+
+		// zmien "obecny" wierzcholek
+		currentVertex = lowestIndex;
+
+		// usun z mozliwych do wybrania wierzcholkow
+		possibleVertices.erase(
+			std::find(possibleVertices.begin(), possibleVertices.end(), lowestIndex)
+		);
+	}
+
+	returnLength += matrix->mat[0][currentVertex];
+
+	return std::make_tuple(returnVector, returnLength);
+}
+
+std::tuple<std::vector<short>, int> Algorithms::generateNewSolutionV(Matrix* matrix, const short startVertex) {
+	// Greedy method
+	if (!startVertex)
+		return generateInitialSolution(matrix);
+
+	int matrixSize = matrix->size;
+	std::vector<short> possibleVertices(matrixSize - 2), returnVector;
+	int returnLength = INT_MAX;
+	returnVector.reserve(matrixSize);
+
+	// usun z mozliwych do wybrania wierzcholkow
+	std::iota(possibleVertices.begin(), possibleVertices.end(), 1);
+	possibleVertices.erase(
+		std::find(possibleVertices.begin(), possibleVertices.end(), startVertex)
+	);
+	returnVector.push_back(startVertex);
+	returnLength = matrix->mat[startVertex][0];	
+
+	// zmien "obecny" wierzcholek
+	int currentVertex = 0;
 	while (possibleVertices.size()) {
 		int value = INT_MAX, lowestIndex = 0;
 		// znajdz najkrotsza mozliwa sciezke

@@ -59,6 +59,7 @@ private:
 	std::chrono::duration<double> runningTime;
 
 	int startingPopulationSize = 10;
+	bool startingPopulationRandom = false; // true = random, false = greedy path
 	double mutationConstant = 0.99f;
 	double crossoverConstant = 0.99f;
 	MutationType currentMutationType = INVERSE;
@@ -70,10 +71,12 @@ private:
 
 	std::tuple<std::vector<short>, int> generateInitialSolution(Matrix* matrix);
 	std::tuple<std::vector<short>, int> generateNewSolution(Matrix* matrix, int notAllowedSecondary);
+	std::tuple<std::vector<short>, int> generateNewSolutionV(Matrix* matrix, const short startVertex = 0);
 
 	// Genetic
 	void geneticOX(Matrix* matrix);
 	// void geneticEAX(Matrix* matrix);
+	std::vector<QueueData> generateStartingPopulation(Matrix* matrix);
 	
 	// TS
 	QueueData generateBestMove(std::vector<short>* currentOrder, int bestLength, std::vector<std::vector<int>>* matrix);
