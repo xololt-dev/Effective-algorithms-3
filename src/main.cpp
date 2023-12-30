@@ -52,7 +52,7 @@ int main() {
 		std::cout << "\n==== MENU GLOWNE ===\n";
 		std::cout << "1.Wczytaj z pliku\n";
 		std::cout << "2.Ustaw czas wykonywania - kryterium stopu\n";
-		std::cout << "3.Ustaw rozmiar populacji początkowej\n";
+		std::cout << "3.Ustaw rozmiar populacji poczatkowej\n";
 		std::cout << "4.Ustaw wspolczynnik mutacji\n";
 		std::cout << "5.Ustaw wspolczynnik krzyzowania\n";
 		std::cout << "6.Wybierz metode krzyzowania\n";
@@ -107,6 +107,7 @@ int main() {
 			break;
 		case '8':
 			algo.geneticAlgorithm((Matrix*)&matrix);
+			algo.displayResults();
 			break;
 		}
 	} while (option != '0');
