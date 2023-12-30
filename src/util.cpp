@@ -357,26 +357,26 @@ std::tuple<std::vector<short>, int> Algorithms::generateNewSolutionV(Matrix* mat
 		return generateInitialSolution(matrix);
 
 	int matrixSize = matrix->size;
-	std::vector<short> possibleVertices(matrixSize - 2), returnVector;
+	std::vector<short> localPossibleVertices(matrixSize - 1), returnVector;
 	int returnLength = INT_MAX;
 	returnVector.reserve(matrixSize);
 
 	// usun z mozliwych do wybrania wierzcholkow
-	std::iota(possibleVertices.begin(), possibleVertices.end(), 1);
-	possibleVertices.erase(
-		std::find(possibleVertices.begin(), possibleVertices.end(), startVertex)
+	std::iota(localPossibleVertices.begin(), localPossibleVertices.end(), 1);
+	localPossibleVertices.erase(
+		std::find(localPossibleVertices.begin(), localPossibleVertices.end(), startVertex)
 	);
 	returnVector.push_back(startVertex);
-	returnLength = matrix->mat[startVertex][0];	
+	returnLength = matrix->mat[startVertex][0];
 
 	// zmien "obecny" wierzcholek
 	int currentVertex = 0;
-	while (possibleVertices.size()) {
-		int value = INT_MAX, lowestIndex = 0;
+	while (localPossibleVertices.size()) {
+		int value = INT_MAX, lowestIndex = 1;
 		// znajdz najkrotsza mozliwa sciezke
 		for (int i = 1; i < matrixSize; i++) {
 			if (matrix->mat[i][currentVertex] < value
-				&& (std::find(possibleVertices.begin(), possibleVertices.end(), i) != std::end(possibleVertices))) {
+				&& (std::find(localPossibleVertices.begin(), localPossibleVertices.end(), i) != std::end(localPossibleVertices))) {
 				value = matrix->mat[i][currentVertex];
 				lowestIndex = i;
 			}
@@ -390,8 +390,8 @@ std::tuple<std::vector<short>, int> Algorithms::generateNewSolutionV(Matrix* mat
 		currentVertex = lowestIndex;
 
 		// usun z mozliwych do wybrania wierzcholkow
-		possibleVertices.erase(
-			std::find(possibleVertices.begin(), possibleVertices.end(), lowestIndex)
+		localPossibleVertices.erase(
+			std::find(localPossibleVertices.begin(), localPossibleVertices.end(), lowestIndex)
 		);
 	}
 
@@ -498,6 +498,21 @@ std::vector<short> Algorithms::insertSub(std::vector<short>* currentOrder) {
 	}
 
 	return returnVector;
+}
+
+int Algorithms::calculateCandidate(std::vector<short>* candidateOrder, Matrix* matrix) {
+	int pathLength = 0, previousVector = 0;
+	std::vector<std::vector<int>>* matrixStart = &(matrix->mat);
+	std::vector<short>::iterator ending = candidateOrder->end(), beginning = candidateOrder->begin();
+
+	for (auto iter = beginning; iter != ending; iter++) {
+		pathLength += (*matrixStart)[*iter][previousVector];
+		previousVector = *iter;
+	}
+
+	pathLength += (*matrixStart)[0][previousVector];
+
+	return pathLength;
 }
 
 void clear() {

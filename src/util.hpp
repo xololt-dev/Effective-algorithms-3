@@ -55,7 +55,7 @@ private:
 	int pathLength;
 	std::vector<short> vertexOrder;
 
-	std::chrono::duration<double> maxExecutionTime = std::chrono::seconds(30);
+	std::chrono::duration<double> maxExecutionTime = std::chrono::seconds(1);
 	std::chrono::duration<double> runningTime;
 
 	int startingPopulationSize = 10;
