@@ -21,7 +21,8 @@ void Algorithms::geneticOX(Matrix* matrix) {
 
 	// Starting population generation
 	std::vector<QueueData> qD = generateStartingPopulation(matrix);
-	std::priority_queue<QueueData, std::vector<QueueData>, decltype(compareS)> queue(qD.begin(), qD.end());
+	std::priority_queue<QueueData, std::vector<QueueData>, decltype(compareS)> 
+		queue(qD.begin(), qD.end());
 	// std::priority_queue<QueueData, std::vector<QueueData>,
 		//decltype(compare)> queue(compare);
 	
@@ -38,7 +39,8 @@ void Algorithms::geneticOX(Matrix* matrix) {
 		if (queue.top().pathLength < currentLength) {
 			currentLength = queue.top().pathLength;
 			currentSolution = queue.top().pathOrder;
-			runningTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+			runningTime = std::chrono::duration_cast<std::chrono::microseconds>
+				(std::chrono::steady_clock::now() - start);
 		}
 
 			// Certain bounds
@@ -71,8 +73,6 @@ void Algorithms::geneticOX(Matrix* matrix) {
 		// Generate number(s) [0, 1]
 		std::uniform_real_distribution<> distribution(0.0, 1.0);
 
-		std::cout << "---CHILDREN---\n";
-
 		int childrenGenerated = 0;
 		while (childrenGenerated < currentPopulationSize) {
 			double generated = distribution(gen);
@@ -100,10 +100,13 @@ void Algorithms::geneticOX(Matrix* matrix) {
 				secondCandidate--;
 			} while (secondCandidate == firstCandidate);
 
+			if (distribution(gen) > crossoverConstant)
+				continue;
+
 			// two diff parents
 		// Genetic operations
 			// OX
-			std::tuple<int, int> t = generateRandomTwoPositions(0, currentPopulationSize);
+			std::tuple<int, int> t = generateRandomTwoPositions(0, matrix->size - 2);//currentPopulationSize);
 
 			std::vector<short>::iterator pathIterF = 
 				queueCandidates[firstCandidate].pathOrder.begin();
@@ -121,18 +124,20 @@ void Algorithms::geneticOX(Matrix* matrix) {
 			pathIterB = queueCandidates[secondCandidate].pathOrder.begin();
 			std::advance(pathIterB, std::get<1>(t) + 1);
 			
+			int buffer = 0;
 			while (pathIterB != queueCandidates[secondCandidate].pathOrder.end()) {
 				if (std::find(segmentFromParent.begin(), segmentFromParent.end(), *pathIterB)
 					== segmentFromParent.end()) {
 					segmentFromParent.push_back(*pathIterB);
 				}
+				else buffer++;
 
 				pathIterB++;
 			}
 
 			// From begin to first place copied
 			pathIterB = queueCandidates[secondCandidate].pathOrder.begin();
-			std::advance(pathIterB, std::get<0>(t));
+			std::advance(pathIterB, std::get<0>(t) + buffer);
 			pathIterF = queueCandidates[secondCandidate].pathOrder.begin();
 			std::vector<short> childPath;
 
@@ -141,6 +146,7 @@ void Algorithms::geneticOX(Matrix* matrix) {
 					== segmentFromParent.end()) {
 					childPath.push_back(*pathIterF);
 				}
+				else pathIterB++;
 
 				pathIterF++;
 			}
@@ -150,10 +156,6 @@ void Algorithms::geneticOX(Matrix* matrix) {
 
 			QueueData d;
 			d.pathOrder = childPath;
-
-			for (auto a : childPath)
-				std::cout << a << " ";
-			std::cout << "\n";
 
 			generatedChildren.push_back(d);
 
@@ -168,21 +170,31 @@ void Algorithms::geneticOX(Matrix* matrix) {
 		std::vector<QueueData>::iterator queueDataIter = queueCandidates.begin();
 		std::advance(queueDataIter, previousGenNumber);
 		queueCandidates.erase(queueDataIter, queueCandidates.end());
-		std::cout << "---PREV---\n";
-		for (auto a : queueCandidates) {
-			for (auto b : a.pathOrder)
-				std::cout << b << " ";
-			std::cout << "\n";
-		}
 
 		queue = std::priority_queue<QueueData, std::vector<QueueData>, decltype(compareS)>
 			(queueCandidates.begin(), queueCandidates.end());
 
+		std::priority_queue<QueueData, std::vector<QueueData>, decltype(compareS)>
+			queueChildren;
+
 		for (int i = 0; i < generatedChildren.size(); i++) {
 			QueueData d;
-			d.pathLength = calculateCandidate(&(generatedChildren[i].pathOrder), matrix);
-			d.pathOrder = generatedChildren[i].pathOrder;
-			queue.push(d);
+			double randomNum = distribution(gen);
+			if (randomNum <= mutationConstant) {
+				std::tuple<int, int> iT = generateRandomTwoPositions(0, matrix->size - 2);
+				d = getNewOrder(&(generatedChildren[i].pathOrder), std::get<0>(iT), std::get<1>(iT), &(matrix->mat));
+			}
+			else {
+				d.pathLength = calculateCandidate(&(generatedChildren[i].pathOrder), matrix);
+				d.pathOrder = generatedChildren[i].pathOrder;
+			}
+
+			queueChildren.push(d);
+		}
+
+		for (int i = 0; i < currentPopulationSize - previousGenNumber; i++) {
+			queue.push(queueChildren.top());
+			queueChildren.pop();
 		}
 
 		if (queue.top().pathLength < currentLength) {

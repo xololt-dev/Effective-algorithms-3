@@ -38,8 +38,10 @@ class Algorithms {
 public:
 	void setStopCriterium(int value);
 	void setMutationConstant(double value);
-	void setCrossoverConstant(double value);
+	void setCrossoverConstant(double value) { crossoverConstant = value; };
 	void setStartingPopulationSize(int value);
+	void setCrossoverType(int type) 
+		{ type ? currentCrossoverType = 1 : currentCrossoverType = 0; };
 	void setMutationType(MutationType type);
 
 	void initRandom();
@@ -58,11 +60,12 @@ private:
 	std::chrono::duration<double> maxExecutionTime = std::chrono::seconds(1);
 	std::chrono::duration<double> runningTime;
 
-	int startingPopulationSize = 10;
+	int startingPopulationSize = 3; // min 3
 	bool startingPopulationRandom = false; // true = random, false = greedy path
-	double mutationConstant = 0.99f;
-	double crossoverConstant = 0.99f;
-	MutationType currentMutationType = INVERSE;
+	double mutationConstant = 0.01f;
+	double crossoverConstant = 0.8f;
+	int currentCrossoverType = 0; // 0 OX, 1 EAX
+	MutationType currentMutationType = INSERT;
 
 	// Random
 	std::random_device rd;
@@ -78,20 +81,13 @@ private:
 	// void geneticEAX(Matrix* matrix);
 	std::vector<QueueData> generateStartingPopulation(Matrix* matrix);
 	
-	// TS
-	QueueData generateBestMove(std::vector<short>* currentOrder, int bestLength, std::vector<std::vector<int>>* matrix);
 	QueueData getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix);
 
-	// SA
-	int getPathDelta(Matrix* matrix);
-
-	std::vector<short> generateRandomCandidate(std::vector<short>* currentOrder);
 	std::vector<short> inverse(std::vector<short>* currentOrder, int firstPosition = 0, int secondPosition = 0);
 	std::vector<short> swap(std::vector<short>* currentOrder, int firstPosition = 0, int secondPosition = 0);
 	std::vector<short> insert(std::vector<short>* currentOrder, int firstPosition = 0, int secondPosition = 0);
 	std::vector<short> insertSub(std::vector<short>* currentOrder);
 
-	bool changeSolutions(int candidatePath, int currentPath, double currentTemp);
 	int calculateCandidate(std::vector<short>* candidateOrder, Matrix* matrix);
 };
 

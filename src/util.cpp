@@ -164,12 +164,18 @@ void Algorithms::setMutationConstant(double value) {
 	mutationConstant = value;
 }
 
+/*
 void Algorithms::setCrossoverConstant(double value) {
 	crossoverConstant = value;
-}
+}*/
 
 void Algorithms::setStartingPopulationSize(int value) {
-	startingPopulationSize = value;
+	if (value < 3) {
+		startingPopulationSize = 3;
+		std::cout << "Wartosc musi byc minimum 3!\n";
+	}
+	else 
+		startingPopulationSize = value;
 }
 
 void Algorithms::setMutationType(MutationType type) {
@@ -498,6 +504,39 @@ std::vector<short> Algorithms::insertSub(std::vector<short>* currentOrder) {
 	}
 
 	return returnVector;
+}
+
+QueueData Algorithms::getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix) {
+	QueueData tempData;
+	short previousVertex = 0;
+
+	switch (currentMutationType)
+	{
+	case INVERSE:
+		tempData.pathOrder = inverse(currentOrder, anchorOne, anchorTwo);
+		break;
+	case SWAP:
+		tempData.pathOrder = swap(currentOrder, anchorOne, anchorTwo);
+		break;
+	case INSERT:
+		tempData.pathOrder = insert(currentOrder, anchorOne, anchorTwo);
+		break;
+	default:
+		break;
+	}
+
+	tempData.pathLength = 0;
+
+	for (int k = 0; k < tempData.pathOrder.size(); k++) {
+		tempData.pathLength += (*matrix)[tempData.pathOrder[k]][previousVertex];
+		previousVertex = tempData.pathOrder[k];
+	}
+
+	tempData.pathLength += (*matrix)[0][previousVertex];
+	tempData.anchorOne = tempData.pathOrder[anchorOne];
+	tempData.anchorTwo = tempData.pathOrder[anchorTwo];
+
+	return tempData;
 }
 
 int Algorithms::calculateCandidate(std::vector<short>* candidateOrder, Matrix* matrix) {

@@ -7,14 +7,16 @@
 Matrix matrix;
 Algorithms algo;
 
-void neighboursMenu() {
+void mutationMenu() {
+	clear();
+
 	char option;
 	do {
-		std::cout << "\n==== SASIEDZTWO ===\n";
+		std::cout << "\n==== MUTACJA ====\n";
 		std::cout << "1.Odwrotna kolejnosc\n";
 		std::cout << "2.Zamiana miejsc\n";
 		std::cout << "3.Wstaw w miejsce\n";
-		std::cout << "4.Wstaw podsciezke - tylko wyzarzanie\n";
+		// std::cout << "4.Wstaw podsciezke - tylko wyzarzanie\n";
 		std::cout << "0.Powrot\n";
 		std::cout << "Podaj opcje:";
 		option = _getche();
@@ -32,9 +34,34 @@ void neighboursMenu() {
 		case '3':
 			algo.setMutationType(INSERT);
 			return;
-
+			/*
 		case '4':
 			algo.setMutationType(INSERT_SUB);
+			return;*/
+		}
+	} while (option != '0');
+}
+
+void crossoverMenu() {
+	clear();
+
+	char option;
+	do {
+		std::cout << "\n==== KRZYZOWANIE ====\n";
+		std::cout << "1.Order Crossover (0X)\n";
+		std::cout << "2.(EAX)\n";
+		std::cout << "0.Powrot\n";
+		std::cout << "Podaj opcje:";
+		option = _getche();
+		std::cout << std::endl;
+
+		switch (option) {
+		case '1':
+			algo.setCrossoverType(0);
+			return;
+
+		case '2':
+			algo.setCrossoverType(1);
 			return;
 		}
 	} while (option != '0');
@@ -100,10 +127,10 @@ int main() {
 			break;
 
 		case '6':
-			
+			crossoverMenu();
 			break;
 		case '7':
-			
+			mutationMenu();
 			break;
 		case '8':
 			algo.geneticAlgorithm((Matrix*)&matrix);
