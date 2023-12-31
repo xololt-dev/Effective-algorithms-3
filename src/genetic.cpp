@@ -6,7 +6,13 @@
 // populacja - ocena - selekcja - pula rodzicielska - operacje genetyczne - subpopulacja - ocena - sukcesja - ...
 
 void Algorithms::geneticAlgorithm(Matrix* matrix) {
-	geneticOX(matrix);
+	if (!matrix->size) {
+		std::cout << "Nie wczytano matrycy!\n";
+		return;
+	}
+
+	// geneticOX(matrix);
+	newGeneticOX(matrix);
 }
 
 void Algorithms::geneticOX(Matrix* matrix) {
@@ -34,7 +40,9 @@ void Algorithms::geneticOX(Matrix* matrix) {
 
 	while (std::chrono::duration_cast<std::chrono::microseconds>(
 		std::chrono::steady_clock::now() - start) < maxExecutionTime) {
-	
+		
+		currentPopulationSize = queue.size();
+
 		// Grading
 		if (queue.top().pathLength < currentLength) {
 			currentLength = queue.top().pathLength;
@@ -100,9 +108,6 @@ void Algorithms::geneticOX(Matrix* matrix) {
 				secondCandidate--;
 			} while (secondCandidate == firstCandidate);
 
-			if (distribution(gen) > crossoverConstant)
-				continue;
-
 			// two diff parents
 		// Genetic operations
 			// OX
@@ -117,7 +122,7 @@ void Algorithms::geneticOX(Matrix* matrix) {
 			std::advance(pathIterB, std::get<1>(t));
 
 			// Copy fragment
-			std::vector<short> segmentFromParent(std::get<1>(t) - std::get<0>(t) + 1);//(pathIterF, pathIterB);
+			std::vector<short> segmentFromParent(std::get<1>(t) - std::get<0>(t) + 1);
 			std::copy(pathIterF, pathIterB + 1, segmentFromParent.begin());
 
 			// From last place till end
@@ -164,7 +169,9 @@ void Algorithms::geneticOX(Matrix* matrix) {
 			
 		// Subpopulation
 			// Update population size (aka do we need to generate more)
-		currentPopulationSize = startingPopulationSize + log2(iterationsDone);
+		//if (distribution(gen) > crossoverConstant)
+			//continue;
+		// currentPopulationSize = startingPopulationSize + log2(iterationsDone);
 		int previousGenNumber = (currentPopulationSize + 2 - 1) / 2; // ceil int
 
 		std::vector<QueueData>::iterator queueDataIter = queueCandidates.begin();
@@ -178,8 +185,12 @@ void Algorithms::geneticOX(Matrix* matrix) {
 			queueChildren;
 
 		for (int i = 0; i < generatedChildren.size(); i++) {
-			QueueData d;
 			double randomNum = distribution(gen);
+			if (randomNum > crossoverConstant)
+				continue;
+
+			QueueData d;
+
 			if (randomNum <= mutationConstant) {
 				std::tuple<int, int> iT = generateRandomTwoPositions(0, matrix->size - 2);
 				d = getNewOrder(&(generatedChildren[i].pathOrder), std::get<0>(iT), std::get<1>(iT), &(matrix->mat));
@@ -192,9 +203,33 @@ void Algorithms::geneticOX(Matrix* matrix) {
 			queueChildren.push(d);
 		}
 
-		for (int i = 0; i < currentPopulationSize - previousGenNumber; i++) {
-			queue.push(queueChildren.top());
-			queueChildren.pop();
+		// Not enough children, fill with previous
+		if (queueChildren.size() + previousGenNumber < currentPopulationSize) {
+			queue = queueChildren;
+
+			// Fill
+			for (int i = 0; i < queueCandidates.size(); i++)
+				queue.push(queueCandidates[i]);
+		}
+		// Enough children - standard distrib.
+		else {
+			std::vector<QueueData>::iterator queueDataIter = queueCandidates.begin();
+			std::advance(queueDataIter, previousGenNumber);
+			queueCandidates.erase(queueDataIter, queueCandidates.end());
+
+			queue = std::priority_queue<QueueData, std::vector<QueueData>, decltype(compareS)>
+				(queueCandidates.begin(), queueCandidates.end());
+
+			while (!queueChildren.empty()) {
+				queue.push(queueChildren.top());
+				queueChildren.pop();
+			}
+			/*
+			for (int i = 0; i < currentPopulationSize - previousGenNumber; i++) {
+				queue.push(queueChildren.top());
+				queueChildren.pop();
+			}
+			*/
 		}
 
 		if (queue.top().pathLength < currentLength) {
@@ -208,6 +243,78 @@ void Algorithms::geneticOX(Matrix* matrix) {
 
 	pathLength = currentLength;
 	vertexOrder = currentSolution;
+}
+
+void Algorithms::newGeneticOX(Matrix* matrix) {
+	// Priority queue func
+	struct {
+		bool operator()(const QueueData x, const QueueData y) const
+			{ return x.pathLength > y.pathLength; };
+	} compareS;
+
+	pathLength = INT_MAX;
+
+	// Starting population generation
+	std::vector<QueueData> qD = generateStartingPopulation(matrix);
+	std::priority_queue<QueueData, std::vector<QueueData>, decltype(compareS)>
+		queue(qD.begin(), qD.end());
+
+	std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
+
+	while (std::chrono::duration_cast<std::chrono::microseconds>(
+		std::chrono::steady_clock::now() - start) < maxExecutionTime) {
+
+		// Update best solution if applicable
+		if (queue.top().pathLength < pathLength) {
+			pathLength = queue.top().pathLength;
+			vertexOrder = queue.top().pathOrder;
+			runningTime = std::chrono::duration_cast<std::chrono::microseconds>
+				(std::chrono::steady_clock::now() - start);
+		}
+
+		// Get lower bounds
+		std::vector<double> lowerBounds = getVertexLowerBounds(queue.size());
+
+		// Generate pairs
+		std::vector<std::tuple<short, short>> parents = 
+			generateParents(&lowerBounds, queue.size());
+
+		// Dump gen. to vector
+		std::vector<QueueData> parentsData;
+		std::vector<QueueData> childrenData;
+		while (!queue.empty()) {
+			parentsData.push_back(queue.top());
+			queue.pop();
+		}
+
+		// Genetic operations
+		std::uniform_real_distribution<> distribution(0.0, 1.0);
+		for (std::tuple<short, short> t : parents) {
+			if (distribution(gen) > crossoverConstant)
+				continue;
+
+			// Crossover
+			QueueData child = generateChild(matrix, &parentsData[std::get<0>(t)].pathOrder,
+				&parentsData[std::get<0>(t)].pathOrder);
+			
+			// Mutate
+			if (distribution(gen) <= mutationConstant) {
+				std::tuple<int, int> iT = generateRandomTwoPositions(0, matrix->size - 2);
+				child = getNewOrder(&child.pathOrder, std::get<0>(iT),
+					std::get<1>(iT), &(matrix->mat));
+			}
+			else child.pathLength = calculateCandidate(&child.pathOrder, matrix);
+
+			childrenData.push_back(child);
+		}
+
+		// Combine to get new generation
+		std::vector<QueueData> newGen = getNewRandomGeneration(matrix,
+			&parentsData, &childrenData);
+
+		queue = std::priority_queue<QueueData, std::vector<QueueData>, 
+			decltype(compareS)> (newGen.begin(), newGen.end());
+	}
 }
 
 std::vector<QueueData> Algorithms::generateStartingPopulation(Matrix* matrix) {
@@ -266,4 +373,189 @@ std::vector<QueueData> Algorithms::generateStartingPopulation(Matrix* matrix) {
 	}
 	
 	return returnVec;
+}
+
+std::vector<double> Algorithms::getVertexLowerBounds(int vectorSize) {
+	std::vector<double> vertexLowerBound(vectorSize, 0.0);
+	
+	for (int i = 1; i < vertexLowerBound.size(); i++) {
+		double current = (1.0 - (double) i / (double) vectorSize);
+		vertexLowerBound[i] = current + vertexLowerBound[i - 1];
+	}
+
+	double sum = vertexLowerBound[vertexLowerBound.size() - 1];
+
+	for (int i = 1; i < vertexLowerBound.size(); i++) {
+		vertexLowerBound[i] /= sum;
+	}
+
+	return vertexLowerBound;
+}
+
+std::vector<std::tuple<short, short>> Algorithms::generateParents(std::vector<double>* boundsVector, int vectorSize) {
+	std::vector<std::tuple<short, short>> pairsVector;
+	// Maybe saved "wrong" generations to a vector for later usage?
+	std::vector<short> generatedRandoms;
+
+	// Generate number(s) [0, 1]
+	std::uniform_real_distribution<> distribution(0.0, 1.0);
+	int childrenGenerated = 0;
+
+	while (childrenGenerated < vectorSize) {
+		double generated;
+		int firstCandidate = 0;
+		int secondCandidate = 0;
+		std::vector<double>::iterator boundIter = boundsVector->begin();
+
+		// Check if we generated something we can take
+		if (!generatedRandoms.empty()) {
+			firstCandidate = generatedRandoms[0];
+
+			generatedRandoms.erase(
+				std::find(generatedRandoms.begin(), generatedRandoms.end(), firstCandidate)
+			);
+		}
+		else {
+			generated = distribution(gen);
+			
+			while (*boundIter < generated
+				&& boundIter != boundsVector->end()) {
+				firstCandidate++;
+				boundIter++;
+			}
+			firstCandidate--;
+		}
+
+		// Check if we generated something we can take
+		if (!generatedRandoms.empty()) {
+			for (short vertex : generatedRandoms) {
+				if (firstCandidate != vertex) {
+					secondCandidate = vertex;
+					generatedRandoms.erase(
+						std::find(generatedRandoms.begin(), generatedRandoms.end(), secondCandidate)
+					);
+					break;
+				}
+			}
+			// If we did, save and end this iteration early
+			if (secondCandidate != firstCandidate) {
+				pairsVector.push_back(std::tuple<short, short>(firstCandidate, secondCandidate));
+				childrenGenerated++;
+				continue;
+			}
+		}
+		
+		/*
+		do {
+			secondCandidate = 0;
+			generatedSecond = distribution(gen);
+			boundIter = boundsVector->begin();
+
+			while (*boundIter < generatedSecond
+				&& boundIter != boundsVector->end()) {
+				secondCandidate++;
+				boundIter++;
+			}
+			secondCandidate--;
+		} while (secondCandidate == firstCandidate);
+		*/
+		// Otherwise, go standard
+		while (true) {
+			secondCandidate = 0;
+			generated = distribution(gen);
+			boundIter = boundsVector->begin();
+
+			while (*boundIter < generated
+				&& boundIter != boundsVector->end()) {
+				secondCandidate++;
+				boundIter++;
+			}
+			secondCandidate--;
+			// Found candidate, save and exit
+			if (secondCandidate != firstCandidate) {
+				pairsVector.push_back(std::tuple<short, short>(firstCandidate, secondCandidate));
+				break;
+			}
+			// Otherwise save for later
+			else generatedRandoms.push_back(secondCandidate);
+		}
+
+		childrenGenerated++;
+	}
+
+	return pairsVector;
+}
+
+QueueData Algorithms::generateChild(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent) {
+	QueueData generatedChild;
+	
+	std::tuple<int, int> t = generateRandomTwoPositions(0, matrix->size - 2);
+
+	std::vector<short>::iterator pathIterF =
+		firstParent->begin();
+	std::vector<short>::iterator pathIterB =
+		firstParent->begin();
+
+	std::advance(pathIterF, std::get<0>(t));
+	std::advance(pathIterB, std::get<1>(t));
+
+	// Copy fragment
+	std::vector<short> segmentFromParent(std::get<1>(t) - std::get<0>(t) + 1);
+	std::copy(pathIterF, pathIterB + 1, segmentFromParent.begin());
+
+	// From last place till end
+	pathIterB = secondParent->begin();
+	std::advance(pathIterB, std::get<1>(t) + 1);
+
+	int buffer = 0;
+	while (pathIterB != secondParent->end()) {
+		if (std::find(segmentFromParent.begin(), segmentFromParent.end(), *pathIterB)
+			== segmentFromParent.end()) {
+			segmentFromParent.push_back(*pathIterB);
+		}
+		else buffer++;
+
+		pathIterB++;
+	}
+
+	// From begin to first place copied
+	pathIterB = secondParent->begin();
+	std::advance(pathIterB, std::get<0>(t) + buffer);
+	pathIterF = secondParent->begin();
+	std::vector<short> childPath;
+
+	while (pathIterF != pathIterB) {
+		if (std::find(segmentFromParent.begin(), segmentFromParent.end(), *pathIterF)
+			== segmentFromParent.end()) {
+			childPath.push_back(*pathIterF);
+		}
+		else pathIterB++;
+
+		pathIterF++;
+	}
+
+	// Connect two vectors
+	childPath.insert(childPath.end(), segmentFromParent.begin(), segmentFromParent.end());
+	
+	generatedChild.pathOrder = childPath;
+
+	return generatedChild;
+}
+
+std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children) {
+	std::vector<QueueData> newGeneration;
+	std::vector<short> possibleIndexCombined(parents->size() + children->size());
+	std::uniform_int_distribution<> distribution(0, parents->size() + children->size() - 1);
+
+	std::iota(possibleIndexCombined.begin(), possibleIndexCombined.end(), 0);
+	std::shuffle(possibleIndexCombined.begin(), possibleIndexCombined.end(), gen);
+
+	for (int i = 0; i < startingPopulationSize; i++) {
+		if (possibleIndexCombined[i] < parents->size())
+			newGeneration.push_back((*parents)[possibleIndexCombined[i]]);
+		else
+			newGeneration.push_back((*children)[possibleIndexCombined[i] - parents->size()]);
+	}
+
+	return newGeneration;
 }

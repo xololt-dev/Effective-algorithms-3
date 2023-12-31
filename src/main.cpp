@@ -7,6 +7,38 @@
 Matrix matrix;
 Algorithms algo;
 
+void mainMenu() {
+	std::cout << "\n==== MENU GLOWNE ====\n";
+	std::cout << "1.Wczytaj z pliku - " << algo.getBenchmarkFile() << "\n";
+	std::cout << "2.Ustaw czas wykonywania [s] (kryterium stopu) - "
+		<< algo.getMaxExecutionTime().count() << "\n";
+	std::cout << "3.Ustaw rozmiar populacji poczatkowej - "
+		<< algo.getStartingPopulationSize() << "\n";
+	std::cout << "4.Ustaw wspolczynnik mutacji - "
+		<< algo.getMutationConstant() << "\n";
+	std::cout << "5.Ustaw wspolczynnik krzyzowania - "
+		<< algo.getCrossoverConstant() << "\n";
+	std::cout << "6.Wybierz metode krzyzowania - " <<
+		(algo.getCurrentCrossoverType() ? "EAX" : "Order Crossover") << "\n";
+	std::cout << "7.Wybierz metode mutacji - ";
+	switch (algo.getCurrentMutationType()) {
+	case 0:
+		std::cout << "Odwrotna kolejnosc\n";
+		break;
+	case 1:
+		std::cout << "Zamiana miejsc\n";
+		break;
+	case 2:
+		std::cout << "Wstaw w miejsce\n";
+		break;
+	default:
+		break;
+	}
+	std::cout << "8.Uruchom algorytm\n";
+	std::cout << "0.Wyjdz\n";
+	std::cout << "Podaj opcje:";
+}
+
 void mutationMenu() {
 	clear();
 
@@ -48,7 +80,7 @@ void crossoverMenu() {
 	char option;
 	do {
 		std::cout << "\n==== KRZYZOWANIE ====\n";
-		std::cout << "1.Order Crossover (0X)\n";
+		std::cout << "1.Order Crossover (OX)\n";
 		std::cout << "2.(EAX)\n";
 		std::cout << "0.Powrot\n";
 		std::cout << "Podaj opcje:";
@@ -76,17 +108,7 @@ int main() {
 	algo.initRandom();
 
 	do {
-		std::cout << "\n==== MENU GLOWNE ===\n";
-		std::cout << "1.Wczytaj z pliku\n";
-		std::cout << "2.Ustaw czas wykonywania - kryterium stopu\n";
-		std::cout << "3.Ustaw rozmiar populacji poczatkowej\n";
-		std::cout << "4.Ustaw wspolczynnik mutacji\n";
-		std::cout << "5.Ustaw wspolczynnik krzyzowania\n";
-		std::cout << "6.Wybierz metode krzyzowania\n";
-		std::cout << "7.Wybierz metode mutacji\n";
-		std::cout << "8.Uruchom algorytm\n";
-		std::cout << "0.Wyjdz\n";
-		std::cout << "Podaj opcje:";
+		mainMenu();
 		option = _getche();
 		std::cout << std::endl;
 
@@ -94,8 +116,12 @@ int main() {
 		case '1':
 			std::cout << " Podaj nazwe zbioru:";
 			std::cin >> fileName;
-			matrix.loadFromFile(fileName);
-			matrix.display();
+			if (matrix.loadFromFile(fileName)) {
+				matrix.display();
+				algo.setBenchmarkFile(fileName);
+			}
+			else algo.setBenchmarkFile("BRAK");
+			
 			break;
 
 		case '2':
@@ -134,6 +160,7 @@ int main() {
 			break;
 		case '8':
 			algo.geneticAlgorithm((Matrix*)&matrix);
+			clear();
 			algo.displayResults();
 			break;
 		}

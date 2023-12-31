@@ -3,13 +3,13 @@
 #include <string>
 #include <numeric>
 
-void Matrix::loadFromFile(std::string fileName) {
+bool Matrix::loadFromFile(std::string fileName) {
 	int n = fileName.find(".txt");
 
 	if (n != std::string::npos
 		&& fileName.length() - n == 4) {
 		loadFromTXT(fileName);
-		return;
+		return true;
 	}
 
 	n = fileName.find(".atsp");
@@ -17,9 +17,11 @@ void Matrix::loadFromFile(std::string fileName) {
 	if (n != std::string::npos
 		&& fileName.length() - n == 5) {
 		loadFromATSP(fileName);
+		return true;
 	}
 	else
 		std::cout << "Nie mozna otworzyc pliku!\n";
+	return false;
 }
 
 void Matrix::loadFromTXT(std::string fileName) {
