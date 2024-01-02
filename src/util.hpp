@@ -44,6 +44,8 @@ public:
 
 	void setBenchmarkFile(std::string fileName) { benchmarkFile = fileName; };
 	void setStartingPopulationSize(int value);
+	void setStartingPopulationRandom() 
+		{ startingPopulationRandom = !startingPopulationRandom; };
 	void setStopCriterium(int value);
 	void setMutationConstant(double value);
 	void setCrossoverConstant(double value) { crossoverConstant = value; };
@@ -87,12 +89,14 @@ private:
 	// Genetic
 	void geneticOX(Matrix* matrix);
 	void newGeneticOX(Matrix* matrix);
-	// void geneticEAX(Matrix* matrix);
+	void geneticEAX(Matrix* matrix);
 
 	std::vector<QueueData> generateStartingPopulation(Matrix* matrix);
 	std::vector<double> getVertexLowerBounds(int vectorSize);
 	std::vector<std::tuple<short, short>> generateParents(std::vector<double>* boundsVector, int vectorSize);
-	QueueData generateChild(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	QueueData generateChildOX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	QueueData generateChildEAX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	std::vector<std::vector<short>> createESet(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
 	std::vector<QueueData> getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children);
 
 	QueueData getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix);

@@ -14,13 +14,15 @@ void mainMenu() {
 		<< algo.getMaxExecutionTime().count() << "\n";
 	std::cout << "3.Ustaw rozmiar populacji poczatkowej - "
 		<< algo.getStartingPopulationSize() << "\n";
-	std::cout << "4.Ustaw wspolczynnik mutacji - "
+	std::cout << "4.Ustaw rodzaj losowania populacji poczatkowej - "
+		<< (algo.getStartingPopulationRandom() ? "losowa\n" : "zachlanna\n");
+	std::cout << "5.Ustaw wspolczynnik mutacji - "
 		<< algo.getMutationConstant() << "\n";
-	std::cout << "5.Ustaw wspolczynnik krzyzowania - "
+	std::cout << "6.Ustaw wspolczynnik krzyzowania - "
 		<< algo.getCrossoverConstant() << "\n";
-	std::cout << "6.Wybierz metode krzyzowania - " <<
+	std::cout << "7.Wybierz metode krzyzowania - " <<
 		(algo.getCurrentCrossoverType() ? "EAX" : "Order Crossover") << "\n";
-	std::cout << "7.Wybierz metode mutacji - ";
+	std::cout << "8.Wybierz metode mutacji - ";
 	switch (algo.getCurrentMutationType()) {
 	case 0:
 		std::cout << "Odwrotna kolejnosc\n";
@@ -34,7 +36,7 @@ void mainMenu() {
 	default:
 		break;
 	}
-	std::cout << "8.Uruchom algorytm\n";
+	std::cout << "9.Uruchom algorytm\n";
 	std::cout << "0.Wyjdz\n";
 	std::cout << "Podaj opcje:";
 }
@@ -137,30 +139,33 @@ int main() {
 			algo.setStartingPopulationSize(value);
 			clear();
 			break;
-
 		case '4':
+			algo.setStartingPopulationRandom();
+			clear();
+			break;
+		case '5':
 			std::cout << "Podaj wspolczynnik mutacji:";
 			std::cin >> valueD;
 			algo.setMutationConstant(valueD);
 			clear();
 			break;
 
-		case '5':
+		case '6':
 			std::cout << "Podaj wspolczynnik krzyzowania:";
 			std::cin >> valueD;
 			algo.setCrossoverConstant(valueD);
 			clear();
 			break;
 
-		case '6':
+		case '7':
 			crossoverMenu();
 			break;
-		case '7':
+		case '8':
 			mutationMenu();
 			break;
-		case '8':
+		case '9':
 			algo.geneticAlgorithm((Matrix*)&matrix);
-			clear();
+			// clear();
 			algo.displayResults();
 			break;
 		}
