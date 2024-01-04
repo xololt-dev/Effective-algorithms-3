@@ -21,7 +21,7 @@ void mainMenu() {
 	std::cout << "6.Ustaw wspolczynnik krzyzowania - "
 		<< algo.getCrossoverConstant() << "\n";
 	std::cout << "7.Wybierz metode krzyzowania - " <<
-		(algo.getCurrentCrossoverType() ? "EAX" : "Order Crossover") << "\n";
+		(algo.getCurrentCrossoverType() ? "Edge Crossover" : "Order Crossover") << "\n";
 	std::cout << "8.Wybierz metode mutacji - ";
 	switch (algo.getCurrentMutationType()) {
 	case 0:
@@ -83,7 +83,7 @@ void crossoverMenu() {
 	do {
 		std::cout << "\n==== KRZYZOWANIE ====\n";
 		std::cout << "1.Order Crossover (OX)\n";
-		std::cout << "2.(EAX)\n";
+		std::cout << "2.Edge Crossover (EX)\n";
 		std::cout << "0.Powrot\n";
 		std::cout << "Podaj opcje:";
 		option = _getche();

@@ -34,6 +34,33 @@ struct QueueData {
 	int anchorTwo;
 };
 
+struct EdgeTable{
+	std::vector<std::vector<short>> singleEdge,
+									doubleEdge;
+
+	bool isInSingle(int valueOne, int valueTwo) {
+		if (singleEdge[valueOne].empty())
+			return false;
+
+		// Not found
+		if (std::find(singleEdge[valueOne].begin(),
+			singleEdge[valueOne].end(),
+			valueTwo) == singleEdge[valueOne].end())
+			return false;
+
+		return true;
+	};
+
+	EdgeTable() {}
+
+	EdgeTable(int matrixSize) :
+		singleEdge(std::vector<std::vector<short>>(matrixSize, { {} })),
+		doubleEdge(std::vector<std::vector<short>>(matrixSize, { {} }))
+	{}
+
+	~EdgeTable() {}
+};
+
 class Algorithms {
 public:
 	void geneticAlgorithm(Matrix* matrix);
@@ -88,15 +115,19 @@ private:
 
 	// Genetic
 	void geneticOX(Matrix* matrix);
-	void newGeneticOX(Matrix* matrix);
 	void geneticEAX(Matrix* matrix);
 
 	std::vector<QueueData> generateStartingPopulation(Matrix* matrix);
 	std::vector<double> getVertexLowerBounds(int vectorSize);
 	std::vector<std::tuple<short, short>> generateParents(std::vector<double>* boundsVector, int vectorSize);
+	// OX
 	QueueData generateChildOX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	// EAX
 	QueueData generateChildEAX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
-	std::vector<std::vector<short>> createESet(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	
+	void updateTable(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind);
+	std::vector<short> findOccurences(EdgeTable* edgeTable, short* next, short currentVertex);
+
 	std::vector<QueueData> getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children);
 
 	QueueData getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix);
