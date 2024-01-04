@@ -1,6 +1,7 @@
 #include "util.hpp"
 
 #include <numeric>
+#include <thread>
 
 // https://dl.acm.org/doi/pdf/10.1145/3071178.3071305
 // populacja - ocena - selekcja - pula rodzicielska - operacje genetyczne - subpopulacja - ocena - sukcesja - ...
@@ -73,7 +74,7 @@ void Algorithms::geneticOX(Matrix* matrix) {
 
 			// Crossover
 			QueueData child = generateChildOX(matrix, &parentsData[std::get<0>(t)].pathOrder,
-				&parentsData[std::get<0>(t)].pathOrder);
+				&parentsData[std::get<1>(t)].pathOrder);
 			
 			// Mutate
 			if (distribution(gen) <= mutationConstant) {
@@ -107,9 +108,9 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 	pathLength = INT_MAX;
 
 	// Starting population generation
-	std::vector<QueueData> qD = generateStartingPopulation(matrix);
+	std::vector<QueueData> population = generateStartingPopulation(matrix);
 
-	std::sort(qD.begin(), qD.end(), compareS);
+	std::sort(population.begin(), population.end(), compareS);
 
 	std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
 
@@ -117,27 +118,27 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 		std::chrono::steady_clock::now() - start) < maxExecutionTime) {
 
 		// Update best solution if applicable
-		if (qD[0].pathLength < pathLength) {
-			pathLength = qD[0].pathLength;
-			vertexOrder = qD[0].pathOrder;
+		if (population[0].pathLength < pathLength) {
+			pathLength = population[0].pathLength;
+			vertexOrder = population[0].pathOrder;
 			runningTime = std::chrono::duration_cast<std::chrono::microseconds>
 				(std::chrono::steady_clock::now() - start);
 
-			for (short s : qD[0].pathOrder) {
+			for (short s : population[0].pathOrder) {
 				std::cout << s << " ";
 			}
 			std::cout << "\n";
 		}
 
 		// Get lower bounds
-		std::vector<double> lowerBounds = getVertexLowerBounds(qD.size());
+		std::vector<double> lowerBounds = getVertexLowerBounds(population.size());
 
 		// Generate pairs
 		std::vector<std::tuple<short, short>> parents =
-			generateParents(&lowerBounds, qD.size());
+			generateParents(&lowerBounds, population.size());
 
 		// Dump gen. to vector
-		std::vector<QueueData> parentsData(qD.begin(), qD.end());
+		// std::vector<QueueData> parentsData(qD.begin(), qD.end());
 		//parents.reserve(queue.size());
 		std::vector<QueueData> childrenData;
 
@@ -148,8 +149,9 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 				continue;
 
 			// Crossover
-			QueueData child = generateChildEAX(matrix, &parentsData[std::get<0>(t)].pathOrder,
-				&parentsData[std::get<0>(t)].pathOrder);
+			// Can generate too big children
+			QueueData child = generateChildEAX(matrix, &population[std::get<0>(t)].pathOrder,
+				&population[std::get<1>(t)].pathOrder);
 
 			// Mutate
 			if (distribution(gen) <= mutationConstant) {
@@ -163,10 +165,9 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 		}
 
 		// Combine to get new generation
-		qD = getNewRandomGeneration(matrix,
-			&parentsData, &childrenData);
+		population = getNewRandomGeneration(matrix, &population, &childrenData);
 
-		std::sort(qD.begin(), qD.end(), compareS);
+		std::sort(population.begin(), population.end(), compareS);
 	}
 }
 
@@ -448,7 +449,7 @@ QueueData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* first
 	EdgeTable edgeTable(matrixSize - 1);
 
 	// Fill edge table
-	for (int i = 1; i < firstParent->size(); i++) {
+	for (int i = 1; i <= firstParent->size(); i++) {
 		updateTable(&edgeTable, firstParent, i);
 		updateTable(&edgeTable, secondParent, i);
 	}
@@ -456,54 +457,38 @@ QueueData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* first
 	// Vertices left
 	std::vector<short> verticesLeft(matrixSize - 1);
 	std::iota(verticesLeft.begin(), verticesLeft.end(), 1);
-
 	std::shuffle(verticesLeft.begin(), verticesLeft.end(), gen);
+
 	// Current vertex
-	short current = verticesLeft.front();
-	
+	std::uniform_int_distribution<> distribution(0, 1);
+	short current = 0;
+	if (distribution(gen))
+		current = (*firstParent)[0];
+	else current = (*secondParent)[0];
+
 	while (!verticesLeft.empty()) {
 		// Add vertex
 		generatedChild.pathOrder.push_back(current);
 		
 		// Delete current from verticesLeft
-		verticesLeft.erase(
-			std::find(verticesLeft.begin(), verticesLeft.end(), current)
-		);
+		auto iterLeft = std::find(verticesLeft.begin(), verticesLeft.end(), current);
+		
+		if (iterLeft != verticesLeft.end())
+			verticesLeft.erase(iterLeft);
 
 		short next = -1;
-		// Delete occurences
+		// Find occurences
+		// values with offset -1
 		std::vector<short> occurences = findOccurences(&edgeTable, &next, current);
-		
-		/*
-		for (int i = 0; i < edgeTable.singleEdge.size(); i++) {
-			// Skip self check
-			if (i + 1 == current)
-				continue;
-
-			// If found
-			if (std::find(edgeTable.singleEdge[i].begin(), edgeTable.singleEdge[i].end(), current) != edgeTable.singleEdge[i].end()) {
-				occurences.push_back(i);
-			}
-
-			// If found
-			if (std::find(edgeTable.doubleEdge[i].begin(), edgeTable.doubleEdge[i].end(), current) != edgeTable.doubleEdge[i].end()) {
-				occurences.push_back(i);
-				next = i + 1;
-			}
-			// All possibilities of move in occurences
-
-			// Max amount of occurences is 4, so discontinue search when max size reached
-			if (occurences.size() == 4)
-				break;
-		}
-		*/
 
 		// In order:
 			// Check doubleEdge
 			// Check shortest list
-
-		// TODO refactor (can be better)
+		
+		// Delete occurences
+		// TODO refactor (can be better) & bug fix
 		// If not found in doubleEdge next == -1
+		std::vector<short>::iterator temp;
 		if (next == -1) {
 			if (!occurences.empty()) {
 				short shortestListSize = SHRT_MAX;
@@ -514,20 +499,20 @@ QueueData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* first
 					}
 					// Random replace
 					else if (edgeTable.singleEdge[vertex].size() == shortestListSize) {
-						std::uniform_int_distribution<> distribution(0, 1);
 						if (distribution(gen))
 							next = vertex + 1;
 					}
 				}
-
+				
+				temp = std::find(edgeTable.singleEdge[current - 1].begin(), 
+					edgeTable.singleEdge[current - 1].end(), next);
 				// Delete occurences from local
-				edgeTable.singleEdge[current - 1].erase(
-					std::find(edgeTable.singleEdge[current - 1].begin(), edgeTable.singleEdge[current - 1].end(), next)
-				);
+				if (temp != edgeTable.singleEdge[current - 1].end()) 
+					edgeTable.singleEdge[current - 1].erase(temp);
 			}
 			// If no connections, swap to other side to try & fix
 			else {
-				occurences = findOccurences(&edgeTable, &next, current);
+				occurences = findOccurences(&edgeTable, &next, generatedChild.pathOrder[0]);
 
 				if (next == -1) {
 					if (!occurences.empty()) {
@@ -539,36 +524,39 @@ QueueData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* first
 							}
 							// Random replace
 							else if (edgeTable.singleEdge[vertex].size() == shortestListSize) {
-								std::uniform_int_distribution<> distribution(0, 1);
 								if (distribution(gen))
 									next = vertex + 1;
 							}
 						}
 
+						temp = std::find(edgeTable.singleEdge[current - 1].begin(), 
+							edgeTable.singleEdge[current - 1].end(), next);
 						// Delete occurences from local
-						edgeTable.doubleEdge[current - 1].erase(
-							std::find(edgeTable.doubleEdge[current - 1].begin(), edgeTable.doubleEdge[current - 1].end(), next)
-						);
+						if (temp != edgeTable.singleEdge[current - 1].end())
+							edgeTable.singleEdge[current - 1].erase(temp);
 					}
 					// At this point, choose random (well... kinda) from remaining
 					else next = verticesLeft[0];
-
-					// Delete occurences from local
-					edgeTable.singleEdge[current - 1].erase(
-						std::find(edgeTable.singleEdge[current - 1].begin(), edgeTable.singleEdge[current - 1].end(), next)
-					);
 				}
-			}			
+				else {
+					temp = std::find(edgeTable.doubleEdge[current - 1].begin(), 
+						edgeTable.doubleEdge[current - 1].end(), next);
+					// Delete occurences from local
+					if (temp != edgeTable.doubleEdge[current - 1].end())
+						edgeTable.doubleEdge[current - 1].erase(temp);
+				}
+			}
 		}
 		else {
+			temp = std::find(edgeTable.doubleEdge[current - 1].begin(), 
+				edgeTable.doubleEdge[current - 1].end(), next);
 			// Delete occurences from local
-			edgeTable.doubleEdge[current - 1].erase(
-				std::find(edgeTable.doubleEdge[current - 1].begin(), edgeTable.doubleEdge[current - 1].end(), next)
-			);
+			if (temp != edgeTable.doubleEdge[current - 1].end())
+				edgeTable.doubleEdge[current - 1].erase(temp);
 		}
 
 		current = next;
-	}	
+	}
 
 	return generatedChild;
 }
@@ -580,27 +568,34 @@ void Algorithms::updateTable(EdgeTable* edgeTable, std::vector<short>* parent, i
 	// Check if double connection
 		// Needs to be changed to checking singleEdge vectors, since "same connection" can be in different places of vectors
 		// Maybe only look forward and for end() look at front()
-	
-	short firstValue = (*iter - 1),
-		  secondValue = (*iter == parent->back() ? parent->front() - 1 : *(iter + 1) - 1);
 
-	// Doesn't exist in single, add to single
-	if (!edgeTable->isInSingle(firstValue, secondValue)) {
-		edgeTable->singleEdge[firstValue].push_back(secondValue);
-		edgeTable->singleEdge[secondValue].push_back(firstValue);
-	}
+	short firstValue = vertexToFind - 1, // -1 to correct for vector offset
+	      secondValue = (*iter == parent->back() ? parent->front() - 1 : (*(iter + 1) - 1));
+
+	bool first = edgeTable->isInSingle(firstValue, secondValue + 1);
+	bool second = edgeTable->isInSingle(secondValue, firstValue + 1);
+
 	// Exists in single
-	else {
+	if (first || second) {
 		// Delete from single...
 		edgeTable->singleEdge[firstValue].erase(
 			std::find(edgeTable->singleEdge[firstValue].begin(),
 				edgeTable->singleEdge[firstValue].end(),
-				secondValue)
+				secondValue + 1)
 		);
-
+		edgeTable->singleEdge[secondValue].erase(
+			std::find(edgeTable->singleEdge[secondValue].begin(),
+				edgeTable->singleEdge[secondValue].end(),
+				firstValue + 1)
+		);
 		// ... move to double
-		edgeTable->doubleEdge[firstValue].push_back(secondValue);
-		edgeTable->doubleEdge[secondValue].push_back(firstValue);
+		edgeTable->doubleEdge[firstValue].push_back(secondValue + 1);
+		edgeTable->doubleEdge[secondValue].push_back(firstValue + 1);
+	}
+	// Doesn't exist in single, add to single
+	else {
+		edgeTable->singleEdge[firstValue].push_back(secondValue + 1);
+		edgeTable->singleEdge[secondValue].push_back(firstValue + 1);
 	}
 }
 
@@ -613,25 +608,26 @@ std::vector<short> Algorithms::findOccurences(EdgeTable* edgeTable, short* next,
 		if (i + 1 == currentVertex)
 			continue;
 
+		// Max amount of occurences is 4, so discontinue search when max size reached
+		if (occurences.size() == 4)
+			break;
+
 		iterOccur = std::find(edgeTable->singleEdge[i].begin(), edgeTable->singleEdge[i].end(), currentVertex);
 		// If found
 		if (iterOccur != edgeTable->singleEdge[i].end()) {
 			occurences.push_back(i);
 			edgeTable->singleEdge[i].erase(iterOccur);
+			continue;
 		}
 
 		iterOccur = std::find(edgeTable->doubleEdge[i].begin(), edgeTable->doubleEdge[i].end(), currentVertex);
 		// If found
 		if (iterOccur != edgeTable->doubleEdge[i].end()) {
 			occurences.push_back(i);
-			*next = i;
+			*next = i + 1;
 			edgeTable->doubleEdge[i].erase(iterOccur);
 		}
 		// All possibilities of move in occurences
-
-		// Max amount of occurences is 4, so discontinue search when max size reached
-		if (occurences.size() == 4)
-			break;
 	}
 
 	return occurences;

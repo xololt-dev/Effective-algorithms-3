@@ -51,12 +51,23 @@ struct EdgeTable{
 		return true;
 	};
 
+	void display() {
+		for (int i = 0; i < singleEdge.size(); i++) {
+			std::cout << i + 1 << ": ";
+			for (short s : singleEdge[i])
+				std::cout << s << " ";
+			for (short s : doubleEdge[i])
+				std::cout << s << "+ ";
+			std::cout << "\n";
+		}
+		std::cout << "\n";
+	}
+
 	EdgeTable() {}
 
 	EdgeTable(int matrixSize) :
-		singleEdge(std::vector<std::vector<short>>(matrixSize, { {} })),
-		doubleEdge(std::vector<std::vector<short>>(matrixSize, { {} }))
-	{}
+		singleEdge(std::vector<std::vector<short>>(matrixSize)),
+		doubleEdge(std::vector<std::vector<short>>(matrixSize)) {}
 
 	~EdgeTable() {}
 };
