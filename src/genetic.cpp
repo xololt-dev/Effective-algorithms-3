@@ -17,6 +17,7 @@ void Algorithms::geneticAlgorithm(Matrix* matrix) {
 		geneticOX(matrix);
 }
 
+// TODO: check if swapping to vector also helps here
 void Algorithms::geneticOX(Matrix* matrix) {
 	// Priority queue func
 	struct {
@@ -94,20 +95,21 @@ void Algorithms::geneticOX(Matrix* matrix) {
 	}
 }
 
-// TODO EAX
 void Algorithms::geneticEAX(Matrix* matrix) {
 	// Priority queue func
 	struct {
 		bool operator()(const QueueData x, const QueueData y) const
-		{ return x.pathLength > y.pathLength; };
+		{
+			return x.pathLength < y.pathLength;
+		};
 	} compareS;
 
 	pathLength = INT_MAX;
 
 	// Starting population generation
 	std::vector<QueueData> qD = generateStartingPopulation(matrix);
-	std::priority_queue<QueueData, std::vector<QueueData>, decltype(compareS)>
-		queue(qD.begin(), qD.end());
+
+	std::sort(qD.begin(), qD.end(), compareS);
 
 	std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
 
@@ -115,32 +117,29 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 		std::chrono::steady_clock::now() - start) < maxExecutionTime) {
 
 		// Update best solution if applicable
-		if (queue.top().pathLength < pathLength) {
-			pathLength = queue.top().pathLength;
-			vertexOrder = queue.top().pathOrder;
+		if (qD[0].pathLength < pathLength) {
+			pathLength = qD[0].pathLength;
+			vertexOrder = qD[0].pathOrder;
 			runningTime = std::chrono::duration_cast<std::chrono::microseconds>
 				(std::chrono::steady_clock::now() - start);
 
-			for (short s : queue.top().pathOrder) {
+			for (short s : qD[0].pathOrder) {
 				std::cout << s << " ";
 			}
 			std::cout << "\n";
 		}
 
 		// Get lower bounds
-		std::vector<double> lowerBounds = getVertexLowerBounds(queue.size());
+		std::vector<double> lowerBounds = getVertexLowerBounds(qD.size());
 
 		// Generate pairs
 		std::vector<std::tuple<short, short>> parents =
-			generateParents(&lowerBounds, queue.size());
+			generateParents(&lowerBounds, qD.size());
 
 		// Dump gen. to vector
-		std::vector<QueueData> parentsData;
+		std::vector<QueueData> parentsData(qD.begin(), qD.end());
+		//parents.reserve(queue.size());
 		std::vector<QueueData> childrenData;
-		while (!queue.empty()) {
-			parentsData.push_back(queue.top());
-			queue.pop();
-		}
 
 		// Genetic operations
 		std::uniform_real_distribution<> distribution(0.0, 1.0);
@@ -164,11 +163,10 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 		}
 
 		// Combine to get new generation
-		std::vector<QueueData> newGen = getNewRandomGeneration(matrix,
+		qD = getNewRandomGeneration(matrix,
 			&parentsData, &childrenData);
 
-		queue = std::priority_queue<QueueData, std::vector<QueueData>,
-			decltype(compareS)>(newGen.begin(), newGen.end());
+		std::sort(qD.begin(), qD.end(), compareS);
 	}
 }
 
@@ -639,7 +637,7 @@ std::vector<short> Algorithms::findOccurences(EdgeTable* edgeTable, short* next,
 	return occurences;
 }
 
-std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children) {
+std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children/*, void* structure*/) {
 	std::vector<QueueData> newGeneration;
 
 	if (children->empty()) {
@@ -652,11 +650,18 @@ std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::v
 
 	std::iota(possibleIndexCombined.begin(), possibleIndexCombined.end(), 1);
 	
-	auto compare = [](QueueData x, QueueData y)
-	{ return x.pathLength > y.pathLength; };
-
-	// Only use when you wanna be elite about children
-	std::sort(children->begin(), children->end(), compare);
+	if (currentCrossoverType) {
+		auto compare = [](QueueData x, QueueData y)
+		{ return x.pathLength < y.pathLength; };
+		// Only use when you wanna be elite about children
+		std::sort(children->begin(), children->end(), compare);
+	}
+	else {
+		auto compare = [](QueueData x, QueueData y)
+		{ return x.pathLength > y.pathLength; };
+		// Only use when you wanna be elite about children
+		std::sort(children->begin(), children->end(), compare);
+	}
 	
 	std::vector<short>::iterator iter = 
 		std::find(possibleIndexCombined.begin(), possibleIndexCombined.end(), parents->size());
