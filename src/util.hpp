@@ -132,7 +132,7 @@ private:
 	void generateRandomStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<QueueData>* returnVec);
 	void generateGreedyStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<QueueData>* returnVec);
 	std::vector<double> getVertexLowerBounds(int vectorSize);
-	std::vector<std::tuple<short, short>> generateParents(std::vector<double>* boundsVector, int vectorSize);
+	std::vector<std::tuple<int, int>> generateParents(std::vector<double>* boundsVector, int vectorSize);
 	// OX
 	QueueData generateChildOX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
 	// EAX

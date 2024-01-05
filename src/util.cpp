@@ -546,7 +546,7 @@ int Algorithms::calculateCandidate(std::vector<short>* candidateOrder, Matrix* m
 	std::vector<std::vector<int>>* matrixStart = &(matrix->mat);
 	std::vector<short>::iterator ending = candidateOrder->end(), beginning = candidateOrder->begin();
 
-	for (auto iter = beginning; iter != ending; iter++) {
+	for (auto& iter = beginning; iter != ending; iter++) {
 		pathLength += (*matrixStart)[*iter][previousVector];
 		previousVector = *iter;
 	}

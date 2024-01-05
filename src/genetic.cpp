@@ -55,7 +55,7 @@ void Algorithms::geneticOX(Matrix* matrix) {
 		std::vector<double> lowerBounds = getVertexLowerBounds(queue.size());
 
 		// Generate pairs
-		std::vector<std::tuple<short, short>> parents = 
+		std::vector<std::tuple<int, int>> parents = 
 			generateParents(&lowerBounds, queue.size());
 
 		// Dump gen. to vector
@@ -68,7 +68,7 @@ void Algorithms::geneticOX(Matrix* matrix) {
 
 		// Genetic operations
 		std::uniform_real_distribution<> distribution(0.0, 1.0);
-		for (std::tuple<short, short> t : parents) {
+		for (std::tuple<int, int> t : parents) {
 			if (distribution(gen) > crossoverConstant)
 				continue;
 
@@ -135,17 +135,16 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 		std::vector<double> lowerBounds = getVertexLowerBounds(population.size());
 
 		// Generate pairs
-		std::vector<std::tuple<short, short>> parents =
+		std::vector<std::tuple<int, int>> parents =
 			generateParents(&lowerBounds, population.size());
 
-		// Dump gen. to vector
-		// std::vector<QueueData> parentsData(qD.begin(), qD.end());
-		//parents.reserve(queue.size());
+		// Generate children
 		std::vector<QueueData> childrenData;
+		childrenData.reserve(population.size());
 
 		// Genetic operations
 		std::uniform_real_distribution<> distribution(0.0, 1.0);
-		for (std::tuple<short, short> t : parents) {
+		for (std::tuple<int, int> t : parents) {
 			if (distribution(gen) > crossoverConstant)
 				continue;
 
@@ -175,6 +174,7 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 
 std::vector<QueueData> Algorithms::generateStartingPopulation(Matrix* matrix) {
 	std::vector<QueueData> returnVec;
+	returnVec.reserve(startingPopulationSize);
 	std::vector<short> leftVertices(matrix->size - 1);
 	std::iota(leftVertices.begin(), leftVertices.end(), 1);
 	QueueData tempData;
@@ -271,10 +271,11 @@ std::vector<double> Algorithms::getVertexLowerBounds(int vectorSize) {
 	return vertexLowerBound;
 }
 
-std::vector<std::tuple<short, short>> Algorithms::generateParents(std::vector<double>* boundsVector, int vectorSize) {
-	std::vector<std::tuple<short, short>> pairsVector;
+std::vector<std::tuple<int, int>> Algorithms::generateParents(std::vector<double>* boundsVector, int vectorSize) {
+	std::vector<std::tuple<int, int>> pairsVector;
+	pairsVector.reserve(boundsVector->size());
 	// Maybe saved "wrong" generations to a vector for later usage?
-	std::vector<short> generatedRandoms;
+	std::vector<int> generatedRandoms;
 
 	// Generate number(s) [0, 1]
 	std::uniform_real_distribution<> distribution(0.0, 1.0);
@@ -307,7 +308,7 @@ std::vector<std::tuple<short, short>> Algorithms::generateParents(std::vector<do
 
 		// Check if we generated something we can take
 		if (!generatedRandoms.empty()) {
-			for (short vertex : generatedRandoms) {
+			for (int vertex : generatedRandoms) {
 				if (firstCandidate != vertex) {
 					secondCandidate = vertex;
 					generatedRandoms.erase(
@@ -318,7 +319,7 @@ std::vector<std::tuple<short, short>> Algorithms::generateParents(std::vector<do
 			}
 			// If we did, save and end this iteration early
 			if (secondCandidate != firstCandidate) {
-				pairsVector.push_back(std::tuple<short, short>(firstCandidate, secondCandidate));
+				pairsVector.push_back(std::tuple<int, int>(firstCandidate, secondCandidate));
 				childrenGenerated++;
 				continue;
 			}
@@ -352,7 +353,7 @@ std::vector<std::tuple<short, short>> Algorithms::generateParents(std::vector<do
 			secondCandidate--;
 			// Found candidate, save and exit
 			if (secondCandidate != firstCandidate) {
-				pairsVector.push_back(std::tuple<short, short>(firstCandidate, secondCandidate));
+				pairsVector.push_back(std::tuple<int, int>(firstCandidate, secondCandidate));
 				break;
 			}
 			// Otherwise save for later
@@ -546,8 +547,8 @@ void Algorithms::findOccurences(EdgeTable* edgeTable, short currentVertex) {
 }
 
 short Algorithms::getNext(EdgeTable* edgeTable, short current, short currentFallback) {
-	short next = 0,
-		  tableSize = SHRT_MAX;
+	short next = 0;
+	int tableSize = INT_MAX;
 	std::vector<short>::iterator temp = edgeTable->doubleEdge[current - 1].begin();
 
 	// Double edges exist
@@ -555,7 +556,7 @@ short Algorithms::getNext(EdgeTable* edgeTable, short current, short currentFall
 		while (temp != edgeTable->doubleEdge[current - 1].end()) {
 			// If table size is lower than previous, set as next
 			if (edgeTable->singleEdge[*temp - 1].size() +
-				edgeTable->doubleEdge[*temp - 1].size() < SHRT_MAX) {
+				edgeTable->doubleEdge[*temp - 1].size() < INT_MAX) {
 				tableSize = edgeTable->singleEdge[*temp - 1].size() +
 					edgeTable->doubleEdge[*temp - 1].size();
 
@@ -580,7 +581,7 @@ short Algorithms::getNext(EdgeTable* edgeTable, short current, short currentFall
 		while (temp != edgeTable->singleEdge[current - 1].end()) {
 			// If table size is lower than previous, set as next
 			if (edgeTable->singleEdge[*temp - 1].size() +
-				edgeTable->doubleEdge[*temp - 1].size() < SHRT_MAX) {
+				edgeTable->doubleEdge[*temp - 1].size() < INT_MAX) {
 				tableSize = edgeTable->singleEdge[*temp - 1].size() +
 					edgeTable->doubleEdge[*temp - 1].size();
 
@@ -608,6 +609,7 @@ short Algorithms::getNext(EdgeTable* edgeTable, short current, short currentFall
 
 std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children/*, void* structure*/) {
 	std::vector<QueueData> newGeneration;
+	newGeneration.reserve(parents->size());
 
 	if (children->empty()) {
 		for (int i = 0; i < parents->size(); i++)
@@ -615,7 +617,7 @@ std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::v
 		return newGeneration;
 	}
 
-	std::vector<short> possibleIndexCombined(parents->size() + children->size() - 2);
+	std::vector<int> possibleIndexCombined(parents->size() + children->size() - 2);
 
 	std::iota(possibleIndexCombined.begin(), possibleIndexCombined.end(), 1);
 	
@@ -632,7 +634,7 @@ std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::v
 		std::sort(children->begin(), children->end(), compare);
 	}
 	
-	std::vector<short>::iterator iter = 
+	std::vector<int>::iterator iter = 
 		std::find(possibleIndexCombined.begin(), possibleIndexCombined.end(), parents->size());
 	
 	if (iter != possibleIndexCombined.end())
@@ -640,6 +642,7 @@ std::vector<QueueData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::v
 
 	std::shuffle(possibleIndexCombined.begin(), possibleIndexCombined.end(), gen);
 
+	newGeneration.reserve(parents->size());
 	newGeneration.push_back((*parents)[0]);
 	newGeneration.push_back((*children)[0]);
 
