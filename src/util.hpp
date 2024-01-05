@@ -138,6 +138,7 @@ private:
 	
 	void updateTable(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind);
 	std::vector<short> findOccurences(EdgeTable* edgeTable, short* next, short currentVertex);
+	short getNext(EdgeTable* edgeTable, short current, short currentFallback);
 
 	std::vector<QueueData> getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children);
 
