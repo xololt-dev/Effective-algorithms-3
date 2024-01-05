@@ -150,7 +150,6 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 				continue;
 
 			// Crossover
-			// Can generate too big children
 			QueueData child = generateChildEAX(matrix, &population[std::get<0>(t)].pathOrder,
 				&population[std::get<1>(t)].pathOrder);
 
@@ -181,95 +180,78 @@ std::vector<QueueData> Algorithms::generateStartingPopulation(Matrix* matrix) {
 	QueueData tempData;
 
 	if (startingPopulationRandom == true) {
-		for (int i = 0; i < startingPopulationSize; i++) {
-			std::shuffle(leftVertices.begin() + 1, leftVertices.end(), gen);
-
-			short previousVertex = 0;
-			tempData.pathLength = 0;
-			tempData.pathOrder = leftVertices;
-
-			for (int k = 0; k < tempData.pathOrder.size(); k++) {
-				tempData.pathLength += matrix->mat[tempData.pathOrder[k]][previousVertex];
-				previousVertex = tempData.pathOrder[k];
-			}
-
-			tempData.pathLength += matrix->mat[0][previousVertex];
-
-			returnVec.push_back(tempData);
-		}
+		generateRandomStartingPopulation(matrix, &leftVertices, &returnVec);
 	}
 	else {
-		std::tuple<std::vector<short>, int> t = generateInitialSolution(matrix);
-		short firstOne = std::get<0>(t)[0];
-		leftVertices.erase(
-			std::find(leftVertices.begin(), leftVertices.end(), firstOne)
+		generateGreedyStartingPopulation(matrix, &leftVertices, &returnVec);
+
+		if (startingPopulationSize >= matrix->size) {
+			std::vector<short> leftVertices(matrix->size - 1);
+			std::iota(leftVertices.begin(), leftVertices.end(), 1);
+
+			generateRandomStartingPopulation(matrix, &leftVertices, &returnVec);
+		}	
+	}
+	
+	return returnVec;
+}
+
+void Algorithms::generateRandomStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<QueueData>* returnVec) {
+	QueueData tempData;
+	while (returnVec->size() < startingPopulationSize) {
+		std::shuffle(leftVertices->begin(), leftVertices->end(), gen);
+
+		short previousVertex = 0;
+		tempData.pathLength = 0;
+		tempData.pathOrder = *leftVertices;
+
+		for (int k = 0; k < tempData.pathOrder.size(); k++) {
+			tempData.pathLength += matrix->mat[tempData.pathOrder[k]][previousVertex];
+			previousVertex = tempData.pathOrder[k];
+		}
+
+		tempData.pathLength += matrix->mat[0][previousVertex];
+
+		returnVec->push_back(tempData);
+	}
+}
+
+void Algorithms::generateGreedyStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<QueueData>* returnVec) {
+	int cap = 0;
+	QueueData tempData;
+
+	std::tuple<std::vector<short>, int> t = generateInitialSolution(matrix);
+	short firstOne = std::get<0>(t)[0];
+	leftVertices->erase(
+		std::find(leftVertices->begin(), leftVertices->end(), firstOne)
+	);
+
+	tempData.pathOrder = std::get<0>(t);
+	tempData.pathLength = std::get<1>(t);
+	tempData.anchorOne = 0;
+	tempData.anchorTwo = 0;
+	returnVec->push_back(tempData);
+	
+	if (startingPopulationSize < matrix->size)
+		cap = startingPopulationSize;
+	else cap = matrix->size - 1;
+
+	for (int i = 1; i < cap; i++) {
+		std::shuffle(leftVertices->begin(), leftVertices->end(), gen);
+
+		t = generateNewSolutionV(matrix, (*leftVertices)[0]);
+
+		firstOne = std::get<0>(t)[0];
+		leftVertices->erase(
+			std::find(leftVertices->begin(), leftVertices->end(), firstOne)
 		);
 
 		tempData.pathOrder = std::get<0>(t);
 		tempData.pathLength = std::get<1>(t);
 		tempData.anchorOne = 0;
 		tempData.anchorTwo = 0;
-		returnVec.push_back(tempData);
-
-		if (startingPopulationSize < matrix->size) {
-			for (int i = 1; i < startingPopulationSize; i++) {
-				std::shuffle(leftVertices.begin() + 1, leftVertices.end(), gen);
-
-				t = generateNewSolutionV(matrix, leftVertices[0]);
-
-				firstOne = std::get<0>(t)[0];
-				leftVertices.erase(
-					std::find(leftVertices.begin(), leftVertices.end(), firstOne)
-				);
-
-				tempData.pathOrder = std::get<0>(t);
-				tempData.pathLength = std::get<1>(t);
-				tempData.anchorOne = 0;
-				tempData.anchorTwo = 0;
-				returnVec.push_back(tempData);
-			}
-		}
-		else {
-			for (int i = 2; i < matrix->size; i++) {
-				std::shuffle(leftVertices.begin() + 1, leftVertices.end(), gen);
-
-				t = generateNewSolutionV(matrix, leftVertices[0]);
-
-				firstOne = std::get<0>(t)[0];
-				leftVertices.erase(
-					std::find(leftVertices.begin(), leftVertices.end(), firstOne)
-				);
-
-				tempData.pathOrder = std::get<0>(t);
-				tempData.pathLength = std::get<1>(t);
-				tempData.anchorOne = 0;
-				tempData.anchorTwo = 0;
-				returnVec.push_back(tempData);
-			}
-
-			std::vector<short> leftVertices(matrix->size - 1);
-			std::iota(leftVertices.begin(), leftVertices.end(), 1);
-
-			while (returnVec.size() < startingPopulationSize) {
-				std::shuffle(leftVertices.begin() + 1, leftVertices.end(), gen);
-
-				short previousVertex = 0;
-				tempData.pathLength = 0;
-				tempData.pathOrder = leftVertices;
-
-				for (int k = 0; k < tempData.pathOrder.size(); k++) {
-					tempData.pathLength += matrix->mat[tempData.pathOrder[k]][previousVertex];
-					previousVertex = tempData.pathOrder[k];
-				}
-
-				tempData.pathLength += matrix->mat[0][previousVertex];
-
-				returnVec.push_back(tempData);
-			}
-		}		
+		returnVec->push_back(tempData);
 	}
-	
-	return returnVec;
 }
 
 std::vector<double> Algorithms::getVertexLowerBounds(int vectorSize) {
@@ -452,7 +434,7 @@ QueueData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* first
 	EdgeTable edgeTable(matrixSize - 1);
 
 	// Fill edge table
-	for (int i = 1; i <= firstParent->size(); i++) {
+	for (int i = 1; i <= matrixSize - 1; i++) {
 		updateTable(&edgeTable, firstParent, i);
 		updateTable(&edgeTable, secondParent, i);
 	}
@@ -478,15 +460,13 @@ QueueData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* first
 		
 		if (iterLeft != verticesLeft.end())
 			verticesLeft.erase(iterLeft);
-
-		short next = -1;
+		
 		// Find occurences
-		// values with offset -1
-		std::vector<short> occurences = findOccurences(&edgeTable, &next, current);
+		findOccurences(&edgeTable, current);
 
 		// Delete occurences
 		// If not found next == -1
-		next = getNext(&edgeTable, current, generatedChild.pathOrder[0]);
+		short next = getNext(&edgeTable, current, generatedChild.pathOrder[0]);
 		if (next == -1 && !verticesLeft.empty())
 			current = verticesLeft[0];
 		else current = next;
@@ -533,23 +513,24 @@ void Algorithms::updateTable(EdgeTable* edgeTable, std::vector<short>* parent, i
 	}
 }
 
-std::vector<short> Algorithms::findOccurences(EdgeTable* edgeTable, short* next, short currentVertex) {
-	std::vector<short> occurences;
+void Algorithms::findOccurences(EdgeTable* edgeTable, short currentVertex) {
+	short occurences = 0;
+	int tableSize = edgeTable->singleEdge.size();
 	std::vector<short>::iterator iterOccur;
 
-	for (int i = 0; i < edgeTable->singleEdge.size(); i++) {
+	for (int i = 0; i < tableSize; i++) {
+		// Max amount of occurences is 4, so discontinue search when max size reached
+		if (occurences == 4)
+			return;
+
 		// Skip self check
 		if (i + 1 == currentVertex)
 			continue;
 
-		// Max amount of occurences is 4, so discontinue search when max size reached
-		if (occurences.size() == 4)
-			break;
-
 		iterOccur = std::find(edgeTable->singleEdge[i].begin(), edgeTable->singleEdge[i].end(), currentVertex);
 		// If found
 		if (iterOccur != edgeTable->singleEdge[i].end()) {
-			occurences.push_back(i);
+			occurences++;
 			edgeTable->singleEdge[i].erase(iterOccur);
 			continue;
 		}
@@ -557,14 +538,11 @@ std::vector<short> Algorithms::findOccurences(EdgeTable* edgeTable, short* next,
 		iterOccur = std::find(edgeTable->doubleEdge[i].begin(), edgeTable->doubleEdge[i].end(), currentVertex);
 		// If found
 		if (iterOccur != edgeTable->doubleEdge[i].end()) {
-			occurences.push_back(i);
-			*next = i + 1;
+			occurences++;
 			edgeTable->doubleEdge[i].erase(iterOccur);
 		}
 		// All possibilities of move in occurences
 	}
-
-	return occurences;
 }
 
 short Algorithms::getNext(EdgeTable* edgeTable, short current, short currentFallback) {
