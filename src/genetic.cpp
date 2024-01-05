@@ -463,7 +463,8 @@ QueueData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* first
 			verticesLeft.erase(iterLeft);
 		
 		// Find occurences
-		findOccurences(&edgeTable, current);
+		findOccurencesNew(&edgeTable, current);
+		// findOccurences(&edgeTable, current);
 
 		// Delete occurences
 		// If not found next == -1
@@ -543,6 +544,30 @@ void Algorithms::findOccurences(EdgeTable* edgeTable, short currentVertex) {
 			edgeTable->doubleEdge[i].erase(iterOccur);
 		}
 		// All possibilities of move in occurences
+	}
+}
+
+void Algorithms::findOccurencesNew(EdgeTable* edgeTable, short currentVertex) {
+	std::vector<short>::iterator iterOccur;
+
+	for (short& s : edgeTable->singleEdge[currentVertex - 1]) {
+		iterOccur = std::find(edgeTable->singleEdge[s - 1].begin(), 
+			edgeTable->singleEdge[s - 1].end(), currentVertex);
+
+		// If found
+		if (iterOccur != edgeTable->singleEdge[s - 1].end()) {
+			edgeTable->singleEdge[s - 1].erase(iterOccur);
+		}
+	}
+
+	for (short& s : edgeTable->doubleEdge[currentVertex - 1]) {
+		iterOccur = std::find(edgeTable->doubleEdge[s - 1].begin(),
+			edgeTable->doubleEdge[s - 1].end(), currentVertex);
+
+		// If found
+		if (iterOccur != edgeTable->doubleEdge[s - 1].end()) {
+			edgeTable->doubleEdge[s - 1].erase(iterOccur);
+		}
 	}
 }
 

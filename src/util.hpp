@@ -67,7 +67,15 @@ struct EdgeTable{
 
 	EdgeTable(int matrixSize) :
 		singleEdge(std::vector<std::vector<short>>(matrixSize)),
-		doubleEdge(std::vector<std::vector<short>>(matrixSize)) {}
+		doubleEdge(std::vector<std::vector<short>>(matrixSize)) {
+		
+		for (std::vector<short>& v : singleEdge) {
+			v.reserve(4);
+		}
+		for (std::vector<short>& v : doubleEdge) {
+			v.reserve(4);
+		}
+	}
 
 	~EdgeTable() {}
 };
@@ -140,6 +148,7 @@ private:
 	
 	void updateTable(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind);
 	void findOccurences(EdgeTable* edgeTable, short currentVertex);
+	void findOccurencesNew(EdgeTable* edgeTable, short currentVertex);
 	short getNext(EdgeTable* edgeTable, short current, short currentFallback);
 
 	std::vector<QueueData> getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children);
