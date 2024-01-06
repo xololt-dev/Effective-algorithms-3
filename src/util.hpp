@@ -27,11 +27,35 @@ private:
 	void loadFromATSP(std::string fileName);
 };
 
-struct QueueData {
+struct PathData {
 	std::vector<short> pathOrder;
 	int pathLength;
-	int anchorOne;
-	int anchorTwo;
+
+	PathData() {}
+
+	~PathData() {}
+
+	PathData(PathData& other) {		//copy constructor
+		pathOrder = other.pathOrder;
+		pathLength = other.pathLength;
+	}
+	
+	PathData& operator=(PathData other) {
+		pathOrder = other.pathOrder;
+		pathLength = other.pathLength;
+		/*
+		std::swap(pathOrder, other.pathOrder);
+		std::swap(pathLength, other.pathLength);
+		std::swap(anchorOne, other.anchorOne);
+		std::swap(anchorTwo, other.anchorTwo);
+		*/
+		return *this;
+	}
+	
+	PathData(PathData&& qd) noexcept :
+		pathOrder(std::move(qd.pathOrder)),       // explicit move of a member of class type
+		pathLength(std::exchange(qd.pathLength, 0)) // explicit move of a member of non-class type
+	{}
 };
 
 struct EdgeTable{
@@ -53,12 +77,14 @@ struct EdgeTable{
 
 	void display() {
 		for (int i = 0; i < singleEdge.size(); i++) {
-			std::cout << i + 1 << ": ";
-			for (short s : singleEdge[i])
-				std::cout << s << " ";
-			for (short s : doubleEdge[i])
-				std::cout << s << "+ ";
-			std::cout << "\n";
+			if (!singleEdge[i].empty() || !doubleEdge[i].empty()) {
+				std::cout << i + 1 << ": ";
+				for (short s : singleEdge[i])
+					std::cout << s << " ";
+				for (short s : doubleEdge[i])
+					std::cout << s << "+ ";
+				std::cout << "\n";
+			}
 		}
 		std::cout << "\n";
 	}
@@ -136,24 +162,23 @@ private:
 	void geneticOX(Matrix* matrix);
 	void geneticEAX(Matrix* matrix);
 
-	std::vector<QueueData> generateStartingPopulation(Matrix* matrix);
-	void generateRandomStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<QueueData>* returnVec);
-	void generateGreedyStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<QueueData>* returnVec);
+	std::vector<PathData> generateStartingPopulation(Matrix* matrix);
+	void generateRandomStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<PathData>* returnVec);
+	void generateGreedyStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<PathData>* returnVec);
 	std::vector<double> getVertexLowerBounds(int vectorSize);
 	std::vector<std::tuple<int, int>> generateParents(std::vector<double>* boundsVector, int vectorSize);
 	// OX
-	QueueData generateChildOX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	PathData generateChildOX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
 	// EAX
-	QueueData generateChildEAX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	PathData generateChildEAX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
 	
 	void updateTable(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind);
-	void findOccurences(EdgeTable* edgeTable, short currentVertex);
-	void findOccurencesNew(EdgeTable* edgeTable, short currentVertex);
+	void deleteOccurences(EdgeTable* edgeTable, short currentVertex, std::vector<short>* vertexToDelete);
 	short getNext(EdgeTable* edgeTable, short current, short currentFallback);
 
-	std::vector<QueueData> getNewRandomGeneration(Matrix* matrix, std::vector<QueueData>* parents, std::vector<QueueData>* children);
+	std::vector<PathData> getNewRandomGeneration(Matrix* matrix, std::vector<PathData>* parents, std::vector<PathData>* children);
 
-	QueueData getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix);
+	PathData getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix);
 
 	std::vector<short> inverse(std::vector<short>* currentOrder, int firstPosition = 0, int secondPosition = 0);
 	std::vector<short> swap(std::vector<short>* currentOrder, int firstPosition = 0, int secondPosition = 0);

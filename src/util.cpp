@@ -270,11 +270,12 @@ std::tuple<int, int> Algorithms::generateRandomTwoPositions(int lowerBound, int 
 
 std::tuple<std::vector<short>, int> Algorithms::generateInitialSolution(Matrix* matrix) {
 	// Greedy method
-	std::vector<short> possibleVertices, returnVector;
-	int matrixSize = matrix->size, returnLength = 0;
+	int matrixSize = matrix->size, 
+		returnLength = 0;
+	std::vector<short> possibleVertices(matrixSize - 1), 
+					   returnVector;
 	returnVector.reserve(matrixSize);
-	for (int i = 1; i < matrixSize; i++)
-		possibleVertices.push_back(i);
+	std::iota(possibleVertices.begin(), possibleVertices.end(), 1);
 
 	int currentVertex = 0;
 
@@ -508,8 +509,8 @@ std::vector<short> Algorithms::insertSub(std::vector<short>* currentOrder) {
 	return returnVector;
 }
 
-QueueData Algorithms::getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix) {
-	QueueData tempData;
+PathData Algorithms::getNewOrder(std::vector<short>* currentOrder, int anchorOne, int anchorTwo, std::vector<std::vector<int>>* matrix) {
+	PathData tempData;
 	short previousVertex = 0;
 
 	switch (currentMutationType)
@@ -535,16 +536,16 @@ QueueData Algorithms::getNewOrder(std::vector<short>* currentOrder, int anchorOn
 	}
 
 	tempData.pathLength += (*matrix)[0][previousVertex];
-	tempData.anchorOne = tempData.pathOrder[anchorOne];
-	tempData.anchorTwo = tempData.pathOrder[anchorTwo];
 
 	return tempData;
 }
 
 int Algorithms::calculateCandidate(std::vector<short>* candidateOrder, Matrix* matrix) {
-	int pathLength = 0, previousVector = 0;
+	int pathLength = 0, 
+		previousVector = 0;
 	std::vector<std::vector<int>>* matrixStart = &(matrix->mat);
-	std::vector<short>::iterator ending = candidateOrder->end(), beginning = candidateOrder->begin();
+	std::vector<short>::iterator ending = candidateOrder->end(), 
+								 beginning = candidateOrder->begin();
 
 	for (auto& iter = beginning; iter != ending; iter++) {
 		pathLength += (*matrixStart)[*iter][previousVector];
