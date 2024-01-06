@@ -75,10 +75,8 @@ void Algorithms::geneticOX(Matrix* matrix) {
 			child.pathLength = calculateCandidate(&child.pathOrder, matrix);
 			// Mutate
 			if (distribution(gen) <= mutationConstant) {
-				if (child.pathLength < pathLength) {
-					std::cout << " You fked up mate\n";
+				if (child.pathLength < pathLength)
 					childrenData.push_back(PathData(child));
-				}
 
 				std::tuple<int, int> iT = generateRandomTwoPositions(0, matrix->size - 2);
 				child = getNewOrder(&child.pathOrder, std::get<0>(iT),
