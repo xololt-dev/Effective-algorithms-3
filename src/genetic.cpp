@@ -6,19 +6,26 @@
 // https://dl.acm.org/doi/pdf/10.1145/3071178.3071305
 // populacja - ocena - selekcja - pula rodzicielska - operacje genetyczne - subpopulacja - ocena - sukcesja - ...
 
-void Algorithms::geneticAlgorithm(Matrix* matrix) {
+void Algorithms::geneticAlgorithm(Matrix* matrix, int benchmarkIteration) {
 	if (!matrix->size) {
 		std::cout << "Nie wczytano matrycy!\n";
 		return;
 	}
 	
-	if (currentCrossoverType)
-		geneticEAX(matrix);
-	else
-		geneticOX(matrix);
+	if (!benchmarkIteration) {
+		if (currentCrossoverType)
+			geneticEAX(matrix);
+		else
+			geneticOX(matrix);
+	}
+	else {
+		if (currentCrossoverType)
+			geneticEAXBench(matrix, benchmarkIteration);
+		else
+			geneticOXBench(matrix, benchmarkIteration);
+	}	
 }
 
-// TODO: check if swapping to vector also helps here
 void Algorithms::geneticOX(Matrix* matrix) {
 	int iterations = 0;
 	// Priority queue func
@@ -171,6 +178,184 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 		iterations++;
 	}
 	std::cout << iterations << "\n";
+}
+
+void Algorithms::geneticOXBench(Matrix* matrix, int iteration) {
+	// Priority queue func
+	struct {
+		bool operator()(const PathData x, const PathData y) const
+		{
+			return x.pathLength < y.pathLength;
+		};
+	} compareS;
+
+	pathLength = INT_MAX;
+
+	// Starting population generation
+	std::vector<PathData> population = generateStartingPopulation(matrix);
+	std::sort(population.begin(), population.end(), compareS);
+
+	std::fstream file;
+	file.open(benchmarkFile, std::fstream::app | std::fstream::out);
+
+	if (file.good()) {
+		std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
+
+		while (std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - start) < maxExecutionTime) {
+
+			// Update best solution if applicable
+			if (population[0].pathLength < pathLength) {
+				pathLength = population[0].pathLength;
+				vertexOrder = population[0].pathOrder;
+				runningTime = std::chrono::duration_cast<std::chrono::microseconds>
+					(std::chrono::steady_clock::now() - start);
+
+				file << iteration << ";" << currentCrossoverType << ";" << currentMutationType <<
+					";" << startingPopulationSize << ";" << startingPopulationRandom << ";" <<
+					mutationConstant << ";" << crossoverConstant << ";" << 
+					std::chrono::duration_cast<std::chrono::microseconds>(runningTime).count() << ";" << pathLength << ";\n";
+			}
+
+			// Get lower bounds
+			std::vector<double> lowerBounds = getVertexLowerBounds(population.size());
+
+			// Generate pairs
+			std::vector<std::tuple<int, int>> parents =
+				generateParents(&lowerBounds, population.size());
+
+			// Dump gen. to vector
+			std::vector<PathData> childrenData;
+			childrenData.reserve(population.size());
+
+			// Genetic operations
+			std::uniform_real_distribution<> distribution(0.0, 1.0);
+			for (std::tuple<int, int> t : parents) {
+				if (distribution(gen) > crossoverConstant)
+					continue;
+
+				// Crossover
+				PathData child = generateChildOX(matrix, &population[std::get<0>(t)].pathOrder,
+					&population[std::get<1>(t)].pathOrder);
+
+				child.pathLength = calculateCandidate(&child.pathOrder, matrix);
+				// Mutate
+				if (distribution(gen) <= mutationConstant) {
+					if (child.pathLength < pathLength)
+						childrenData.push_back(PathData(child));
+
+					std::tuple<int, int> iT = generateRandomTwoPositions(0, matrix->size - 2);
+					child = getNewOrder(&child.pathOrder, std::get<0>(iT),
+						std::get<1>(iT), &(matrix->mat));
+				}
+
+				childrenData.emplace_back(std::move(child));
+			}
+
+			// Combine to get new generation
+			population = getNewRandomGeneration(matrix, &population, &childrenData);
+
+			std::sort(population.begin(), population.end(), compareS);
+		}
+
+		file << iteration << ";" << currentCrossoverType << ";" << currentMutationType <<
+			";" << startingPopulationSize << ";" << startingPopulationRandom << ";" <<
+			mutationConstant << ";" << crossoverConstant << ";" << 
+			std::chrono::duration_cast<std::chrono::microseconds>(maxExecutionTime).count() << ";" << pathLength << ";0-";
+		for (auto& a : vertexOrder) file << a << "-";
+		file << "0\n";
+
+		file.close();
+	}
+	else std::cout << "File not opened!\n";
+}
+
+void Algorithms::geneticEAXBench(Matrix* matrix, int iteration) {
+	// Priority queue func
+	struct {
+		bool operator()(const PathData x, const PathData y) const
+		{
+			return x.pathLength < y.pathLength;
+		};
+	} compareS;
+
+	pathLength = INT_MAX;
+
+	// Starting population generation
+	std::vector<PathData> population = generateStartingPopulation(matrix);
+
+	std::sort(population.begin(), population.end(), compareS);
+
+	std::fstream file;
+	file.open(benchmarkFile, std::fstream::app | std::fstream::out);
+
+	if (file.good()) {
+		std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
+
+		while (std::chrono::duration_cast<std::chrono::microseconds>(
+			std::chrono::steady_clock::now() - start) < maxExecutionTime) {
+
+			// Update best solution if applicable
+			if (population[0].pathLength < pathLength) {
+				pathLength = population[0].pathLength;
+				vertexOrder = population[0].pathOrder;
+				runningTime = std::chrono::duration_cast<std::chrono::microseconds>
+					(std::chrono::steady_clock::now() - start);
+
+				file << iteration << ";" << currentCrossoverType << ";" << currentMutationType <<
+					";" << startingPopulationSize << ";" << startingPopulationRandom << ";" <<
+					mutationConstant << ";" << crossoverConstant << ";" << 
+					std::chrono::duration_cast<std::chrono::microseconds>(runningTime).count() << ";" << pathLength << ";\n";
+			}
+
+			// Get lower bounds
+			std::vector<double> lowerBounds = getVertexLowerBounds(population.size());
+
+			// Generate pairs
+			std::vector<std::tuple<int, int>> parents =
+				generateParents(&lowerBounds, population.size());
+
+			// Generate children
+			std::vector<PathData> childrenData;
+			childrenData.reserve(population.size());
+
+			// Genetic operations
+			std::uniform_real_distribution<> distribution(0.0, 1.0);
+			for (std::tuple<int, int> t : parents) {
+				if (distribution(gen) > crossoverConstant)
+					continue;
+
+				// Crossover
+				PathData child = generateChildEAX(matrix, &population[std::get<0>(t)].pathOrder,
+					&population[std::get<1>(t)].pathOrder);
+
+				// Mutate
+				if (distribution(gen) <= mutationConstant) {
+					std::tuple<int, int> iT = generateRandomTwoPositions(0, matrix->size - 2);
+					child = getNewOrder(&child.pathOrder, std::get<0>(iT),
+						std::get<1>(iT), &(matrix->mat));
+				}
+				else child.pathLength = calculateCandidate(&child.pathOrder, matrix);
+
+				childrenData.emplace_back(std::move(child));
+			}
+
+			// Combine to get new generation
+			population = getNewRandomGeneration(matrix, &population, &childrenData);
+
+			std::sort(population.begin(), population.end(), compareS);
+		}
+
+		file << iteration << ";" << currentCrossoverType << ";" << currentMutationType <<
+			";" << startingPopulationSize << ";" << startingPopulationRandom << ";" <<
+			mutationConstant << ";" << crossoverConstant << ";" << 
+			std::chrono::duration_cast<std::chrono::microseconds>(maxExecutionTime).count() << ";" << pathLength << ";0-";
+		for (auto& a : vertexOrder) file << a << "-";
+		file << "0\n";
+
+		file.close();
+	}
+	else std::cout << "File not opened!\n";	
 }
 
 std::vector<PathData> Algorithms::generateStartingPopulation(Matrix* matrix) {
@@ -424,10 +609,7 @@ PathData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* firstP
 	EdgeTable edgeTable(matrixSize - 1);
 
 	// Fill edge table
-	for (int i = 1; i <= matrixSize - 1; i++) {
-		updateTable(&edgeTable, firstParent, i);
-		updateTable(&edgeTable, secondParent, i);
-	}
+	updateTable(matrix, &edgeTable, firstParent, secondParent);
 
 	EdgeTable referenceCopy = edgeTable;
 
@@ -480,7 +662,18 @@ PathData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* firstP
 	return generatedChild;
 }
 
-void Algorithms::updateTable(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind) {
+void Algorithms::updateTable(Matrix* matrix, EdgeTable* edgeTable, std::vector<short>* firstParent, std::vector<short>* secondParent) {
+	int matrixSize = matrix->size;
+	if (matrixSize < 250) {
+		for (int i = 1; i <= matrixSize - 1; i++) {
+			updateTableFind(edgeTable, firstParent, i);
+			updateTableFind(edgeTable, secondParent, i);
+		}
+	}
+	else updateTableBig(edgeTable, firstParent, secondParent);
+}
+
+void Algorithms::updateTableFind(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind) {
 	std::vector<short>::iterator iter =
 		std::find(parent->begin(), parent->end(), vertexToFind);
 
@@ -515,6 +708,48 @@ void Algorithms::updateTable(EdgeTable* edgeTable, std::vector<short>* parent, i
 	else {
 		edgeTable->singleEdge[firstValue].push_back(secondValue + 1);
 		edgeTable->singleEdge[secondValue].push_back(firstValue + 1);
+	}
+}
+
+// Better for bigger matrices
+void Algorithms::updateTableBig(EdgeTable* edgeTable, std::vector<short>* firstParent, std::vector<short>* secondParent) {
+	// Iterate through firstParent vertices
+	for (auto iter = firstParent->begin(); iter != firstParent->end(); iter++) {
+		short secondValue = (*iter == firstParent->back() ? firstParent->front() : *(iter + 1));
+
+		edgeTable->singleEdge[*iter - 1].push_back(secondValue);
+		edgeTable->singleEdge[secondValue - 1].push_back(*iter);
+	}
+
+	// Iterate through secondParent vertices
+	for (auto iter = secondParent->begin(); iter != secondParent->end(); iter++) {
+		short secondValue = (*iter == secondParent->back() ? secondParent->front() : *(iter + 1));
+
+		bool first = edgeTable->isInSingle(*iter - 1, secondValue);
+		bool second = edgeTable->isInSingle(secondValue - 1, *iter);
+
+		// Exists in single
+		if (first || second) {
+			// Delete from single...
+			edgeTable->singleEdge[*iter - 1].erase(
+				std::find(edgeTable->singleEdge[*iter - 1].begin(),
+					edgeTable->singleEdge[*iter - 1].end(),
+					secondValue)
+			);
+			edgeTable->singleEdge[secondValue - 1].erase(
+				std::find(edgeTable->singleEdge[secondValue - 1].begin(),
+					edgeTable->singleEdge[secondValue - 1].end(),
+					*iter)
+			);
+			// ... move to double
+			edgeTable->doubleEdge[*iter - 1].push_back(secondValue);
+			edgeTable->doubleEdge[secondValue - 1].push_back(*iter);
+		}
+		// Doesn't exist in single, add to single
+		else {
+			edgeTable->singleEdge[*iter - 1].push_back(secondValue);
+			edgeTable->singleEdge[secondValue - 1].push_back(*iter);
+		}
 	}
 }
 
@@ -609,7 +844,7 @@ std::vector<PathData> Algorithms::getNewRandomGeneration(Matrix* matrix, std::ve
 	auto compare = [](PathData x, PathData y)
 		{ return x.pathLength < y.pathLength; };
 	// Only use when you wanna be elite about children
-	std::sort(children->begin(), children->end(), compare);
+	std::partial_sort(children->begin(), children->begin() + 1, children->end(), compare);
 
 	std::vector<int> possibleIndexCombined(pSize + children->size() - 2);
 

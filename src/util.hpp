@@ -94,7 +94,6 @@ struct EdgeTable{
 	EdgeTable(int matrixSize) :
 		singleEdge(std::vector<std::vector<short>>(matrixSize)),
 		doubleEdge(std::vector<std::vector<short>>(matrixSize)) {
-		
 		for (std::vector<short>& v : singleEdge) {
 			v.reserve(4);
 		}
@@ -108,7 +107,7 @@ struct EdgeTable{
 
 class Algorithms {
 public:
-	void geneticAlgorithm(Matrix* matrix);
+	void geneticAlgorithm(Matrix* matrix, int benchmark = 0);
 	void benchmark(Matrix* matrix);
 	void displayResults();
 
@@ -162,6 +161,9 @@ private:
 	void geneticOX(Matrix* matrix);
 	void geneticEAX(Matrix* matrix);
 
+	void geneticOXBench(Matrix* matrix, int iteration);
+	void geneticEAXBench(Matrix* matrix, int iteration);
+
 	std::vector<PathData> generateStartingPopulation(Matrix* matrix);
 	void generateRandomStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<PathData>* returnVec);
 	void generateGreedyStartingPopulation(Matrix* matrix, std::vector<short>* leftVertices, std::vector<PathData>* returnVec);
@@ -172,7 +174,9 @@ private:
 	// EAX
 	PathData generateChildEAX(Matrix* matrix, std::vector<short>* firstParent, std::vector<short>* secondParent);
 	
-	void updateTable(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind);
+	void updateTable(Matrix* matrix, EdgeTable* edgeTable, std::vector<short>* firstParent, std::vector<short>* secondParent);
+	void updateTableFind(EdgeTable* edgeTable, std::vector<short>* parent, int vertexToFind);
+	void updateTableBig(EdgeTable* edgeTable, std::vector<short>* firstParent, std::vector<short>* secondParent);
 	void deleteOccurences(EdgeTable* edgeTable, short currentVertex, std::vector<short>* vertexToDelete);
 	short getNext(EdgeTable* edgeTable, short current, short currentFallback);
 

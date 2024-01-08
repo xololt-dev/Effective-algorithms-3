@@ -166,11 +166,6 @@ void Algorithms::setMutationConstant(double value) {
 	mutationConstant = value;
 }
 
-/*
-void Algorithms::setCrossoverConstant(double value) {
-	crossoverConstant = value;
-}*/
-
 void Algorithms::setStartingPopulationSize(int value) {
 	if (value < 3) {
 		startingPopulationSize = 3;
@@ -189,61 +184,91 @@ void Algorithms::initRandom() {
 }
 
 void Algorithms::benchmark(Matrix* matrix) {
-	int maxIter = 10;
-	int time = 120;
+	int maxIter = 10,
+		time = 120,
+		baselinePop = 4;
+	std::string strings[3] = { "ftv47.csv", "ftv170.csv", "rbg403.csv" };
+	std::string fileNames[3] = { "ftv47.atsp", "ftv170.atsp", "rbg403.atsp" };
 
-	matrix->loadFromFile("ftv47.atsp");
-	setStopCriterium(time);
-	benchmarkFile = "TS_47.txt";
-	for (int j = 0; j < 3; j++) {
-		currentMutationType = (MutationType)j;
-		for (int i = 0; i < maxIter; i++) {
-			//tabuSearchBenchmark(matrix, i);
-		}
-	}
-	benchmarkFile = "SA_47.txt";
-	//coolingConstant = 0.75;
-	for (int j = 0; j < 3; j++) {
-		for (int i = 0; i < maxIter; i++) {
-			//simulatedAnnealingBenchmark(matrix, i);
-		}
-		//coolingConstant -= 0.25;
-	}
+	// b)
+	/*
+	for (int a = 1; a <= 3; a++) {
+		benchmarkFile = "Population_change_" + strings[a - 1];
+		std::fstream file;
+		file.open(benchmarkFile, std::fstream::app | std::fstream::out);
+		if (file.good()) {
+			file << "iteration;currentCrossoverType;currentMutationType;startingPopulationSize;startingPopulationRandom;mutationConstant;crossoverConstant;timeFound;pathLength;pathOrder\n";
 
-	matrix->loadFromFile("ftv170.atsp");
-	setStopCriterium(time * 2);
-	benchmarkFile = "TS_170.txt";
-	for (int j = 0; j < 3; j++) {
-		currentMutationType = (MutationType)j;
-		for (int i = 0; i < maxIter; i++) {
-			//tabuSearchBenchmark(matrix, i);
+			file.close();
 		}
-	}
-	benchmarkFile = "SA_170.txt";
-	//coolingConstant = 0.75;
-	for (int j = 0; j < 3; j++) {
-		for (int i = 0; i < maxIter; i++) {
-		//	simulatedAnnealingBenchmark(matrix, i);
-		}
-		//coolingConstant -= 0.25;
-	}
 
-	matrix->loadFromFile("rbg403.atsp");
-	setStopCriterium(time * 3);
-	benchmarkFile = "TS_403.txt";
-	for (int j = 0; j < 3; j++) {
-		currentMutationType = (MutationType)j;
-		for (int i = 0; i < maxIter; i++) {
-			//tabuSearchBenchmark(matrix, i);
+		matrix->loadFromFile(fileNames[a - 1]);
+		baselinePop = matrix->size / 10;
+		setStopCriterium(time * a);
+
+		for (int i = 0; i < 5; i += 2) {
+			setStartingPopulationSize(baselinePop * pow(10, i));
+			setMutationConstant(0.01);
+			setCrossoverConstant(0.8);
+
+			for (int j = 0; j < 3; j++) {
+				if (j == 1) continue;
+
+				setMutationType((MutationType)j);
+
+				for (int k = 0; k < 2; k++) {
+					setCrossoverType(k);
+					
+					for (int t = 1; t <= maxIter; t++) {
+						geneticAlgorithm(matrix, t);
+					}
+				}
+			}
 		}
 	}
-	benchmarkFile = "SA_403.txt";
-	//coolingConstant = 0.75;
-	for (int j = 0; j < 3; j++) {
-		for (int i = 0; i < maxIter; i++) {
-			//simulatedAnnealingBenchmark(matrix, i);
+	*/
+
+	// c)
+	for (int a = 1; a <= 3; a++) {
+		benchmarkFile = "Population_change_" + strings[a - 1];
+		std::fstream file;
+		file.open(benchmarkFile, std::fstream::app | std::fstream::out);
+		if (file.good()) {
+			file << "iteration;currentCrossoverType;currentMutationType;startingPopulationSize;startingPopulationRandom;mutationConstant;crossoverConstant;timeFound;pathLength;pathOrder\n";
+
+			file.close();
 		}
-		//coolingConstant -= 0.25;
+
+		matrix->loadFromFile(fileNames[a - 1]);
+		baselinePop = matrix->size / 10;
+		if (a == 1 || a == 2)
+			setStartingPopulationSize(baselinePop * 10000);
+		else setStartingPopulationSize(baselinePop * 100);
+		
+		setStopCriterium(time * a);
+		setCrossoverConstant(0.8);
+
+		for (int i = 0; i < 2; i++) {
+			if (i == 0)
+				setMutationConstant(0.01);
+			else if (i == 1)
+				setMutationConstant(0.05);
+			else setMutationConstant(0.10);
+
+			for (int j = 0; j < 3; j++) {
+				if (j == 1) continue;
+
+				setMutationType((MutationType)j);
+
+				for (int k = 0; k < 2; k++) {
+					setCrossoverType(k);
+					
+					for (int t = 1; t <= maxIter; t++) {
+						geneticAlgorithm(matrix, t);
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -1,4 +1,5 @@
 ﻿#include "util.hpp"
+// #include <Python.h>
 
 #include <iostream>
 #include <conio.h>
@@ -139,10 +140,12 @@ int main() {
 			algo.setStartingPopulationSize(value);
 			clear();
 			break;
+
 		case '4':
 			algo.setStartingPopulationRandom();
 			clear();
 			break;
+
 		case '5':
 			std::cout << "Podaj wspolczynnik mutacji:";
 			std::cin >> valueD;
@@ -160,13 +163,19 @@ int main() {
 		case '7':
 			crossoverMenu();
 			break;
+
 		case '8':
 			mutationMenu();
 			break;
+
 		case '9':
 			algo.geneticAlgorithm((Matrix*)&matrix);
 			// clear();
 			algo.displayResults();
+			break;
+
+		case 'b':
+			algo.benchmark((Matrix*)&matrix);
 			break;
 		}
 	} while (option != '0');
