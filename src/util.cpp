@@ -228,9 +228,9 @@ void Algorithms::benchmark(Matrix* matrix) {
 	}
 	*/
 
-	// c)
+	// c) || d)
 	for (int a = 1; a <= 3; a++) {
-		benchmarkFile = "Population_change_" + strings[a - 1];
+		benchmarkFile = "Crossover_change_" + strings[a - 1];
 		std::fstream file;
 		file.open(benchmarkFile, std::fstream::app | std::fstream::out);
 		if (file.good()) {
@@ -246,14 +246,14 @@ void Algorithms::benchmark(Matrix* matrix) {
 		else setStartingPopulationSize(baselinePop * 100);
 		
 		setStopCriterium(time * a);
-		setCrossoverConstant(0.8);
+		setMutationConstant(0.01);
 
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 3; i++) {
 			if (i == 0)
-				setMutationConstant(0.01);
+				setCrossoverConstant(0.5);
 			else if (i == 1)
-				setMutationConstant(0.05);
-			else setMutationConstant(0.10);
+				setCrossoverConstant(0.7);
+			else setCrossoverConstant(0.9);
 
 			for (int j = 0; j < 3; j++) {
 				if (j == 1) continue;

@@ -148,6 +148,9 @@ private:
 	int currentCrossoverType = 0; // 0 OX, 1 EAX
 	MutationType currentMutationType = INSERT;
 
+	double repeat = 0;
+	double total = 0;
+
 	// Random
 	std::random_device rd;
 	std::mt19937 gen;

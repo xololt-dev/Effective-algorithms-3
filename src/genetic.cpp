@@ -41,6 +41,12 @@ void Algorithms::geneticOX(Matrix* matrix) {
 	std::sort(population.begin(), population.end(), compareS);
 
 	std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
+	std::vector<double> lowerBounds;
+	lowerBounds.reserve(population.size());
+	std::vector<std::tuple<int, int>> parents;
+	parents.reserve(population.size());
+	std::vector<PathData> childrenData;
+	childrenData.reserve(population.size());
 
 	while (std::chrono::duration_cast<std::chrono::microseconds>(
 		std::chrono::steady_clock::now() - start) < maxExecutionTime) {
@@ -59,19 +65,16 @@ void Algorithms::geneticOX(Matrix* matrix) {
 		}
 
 		// Get lower bounds
-		std::vector<double> lowerBounds = getVertexLowerBounds(population.size());
+		lowerBounds = getVertexLowerBounds(population.size());
 
 		// Generate pairs
-		std::vector<std::tuple<int, int>> parents = 
-			generateParents(&lowerBounds, population.size());
+		parents = generateParents(&lowerBounds, population.size());
 
 		// Dump gen. to vector
-		std::vector<PathData> childrenData;
-		childrenData.reserve(population.size());
 
 		// Genetic operations
 		std::uniform_real_distribution<> distribution(0.0, 1.0);
-		for (std::tuple<int, int> t : parents) {
+		for (std::tuple<int, int>& t : parents) {
 			if (distribution(gen) > crossoverConstant)
 				continue;
 
@@ -99,6 +102,9 @@ void Algorithms::geneticOX(Matrix* matrix) {
 		std::sort(population.begin(), population.end(), compareS);
 
 		iterations++;
+		lowerBounds.clear();
+		parents.clear();
+		childrenData.clear();
 	}
 
 	std::cout << iterations << "\n";
@@ -122,6 +128,12 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 	std::sort(population.begin(), population.end(), compareS);
 
 	std::chrono::time_point<std::chrono::steady_clock> start = std::chrono::steady_clock::now();
+	std::vector<double> lowerBounds;
+	lowerBounds.reserve(population.size());
+	std::vector<std::tuple<int, int>> parents;
+	parents.reserve(population.size());
+	std::vector<PathData> childrenData;
+	childrenData.reserve(population.size());
 
 	while (std::chrono::duration_cast<std::chrono::microseconds>(
 		std::chrono::steady_clock::now() - start) < maxExecutionTime) {
@@ -140,22 +152,21 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 		}
 
 		// Get lower bounds
-		std::vector<double> lowerBounds = getVertexLowerBounds(population.size());
+		lowerBounds = getVertexLowerBounds(population.size());
 
 		// Generate pairs
-		std::vector<std::tuple<int, int>> parents =
-			generateParents(&lowerBounds, population.size());
+		parents = generateParents(&lowerBounds, population.size());
 
 		// Generate children
-		std::vector<PathData> childrenData;
-		childrenData.reserve(population.size());
 
 		// Genetic operations
 		std::uniform_real_distribution<> distribution(0.0, 1.0);
-		for (std::tuple<int, int> t : parents) {
+		total = 0,
+		repeat = 0;
+		for (std::tuple<int, int>& t : parents) {
 			if (distribution(gen) > crossoverConstant)
 				continue;
-
+			total++;
 			// Crossover
 			PathData child = generateChildEAX(matrix, &population[std::get<0>(t)].pathOrder,
 				&population[std::get<1>(t)].pathOrder);
@@ -176,6 +187,9 @@ void Algorithms::geneticEAX(Matrix* matrix) {
 
 		std::sort(population.begin(), population.end(), compareS);
 		iterations++;
+		lowerBounds.clear();
+		parents.clear();
+		childrenData.clear();
 	}
 	std::cout << iterations << "\n";
 }
@@ -321,7 +335,7 @@ void Algorithms::geneticEAXBench(Matrix* matrix, int iteration) {
 
 			// Genetic operations
 			std::uniform_real_distribution<> distribution(0.0, 1.0);
-			for (std::tuple<int, int> t : parents) {
+			for (std::tuple<int, int>& t : parents) {
 				if (distribution(gen) > crossoverConstant)
 					continue;
 
@@ -599,7 +613,16 @@ PathData Algorithms::generateChildEAX(Matrix* matrix, std::vector<short>* firstP
 	PathData generatedChild;
 
 	if (*firstParent == *secondParent) {
-		generatedChild.pathOrder = std::vector<short>(firstParent->begin(), firstParent->end());
+		repeat++;
+		std::uniform_real_distribution<> distribution(0.0, 1.0);
+		// Mutate
+		if (distribution(gen) <= mutationConstant * (repeat + 1) / total) {
+			std::tuple<int, int> iT = generateRandomTwoPositions(0, matrix->size - 2);
+			generatedChild = getNewOrder(firstParent, std::get<0>(iT),
+				std::get<1>(iT), &(matrix->mat));
+		}
+		else generatedChild.pathOrder = std::vector<short>(firstParent->begin(), firstParent->end());
+		
 		return generatedChild;
 	}
 
